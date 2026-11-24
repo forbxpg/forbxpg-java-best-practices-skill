@@ -1,0 +1,22 @@
+flowchart TB
+  S["PreToolUse"] --> N["normalizeTool<br/>сводит инструменты трёх агентов к виду"]
+  N -->|"shell"| SH["checkShell: S1 опасный git,<br/>S2 гейт Maven с пропуском проверок"]
+  SH --> SHQ{"Нарушение и правило<br/>не в disable?"}
+  SHQ -->|"да"| BLOCK["exit 2<br/>stderr: правило, как исправить, пример"]
+  SHQ -->|"нет"| OK["exit 0: запись разрешена"]
+  N -->|"patch: Codex apply_patch"| P["Для каждого файла патча:<br/>G1 и G2, снимок нарушений .java"]
+  P --> PQ{"G1 или G2?"}
+  PQ -->|"да"| BLOCK
+  PQ -->|"нет"| OK
+  N -->|"other: чтение, поиск"| OK
+  N -->|"write или edit"| W["Путь от папки сессии,<br/>текущий текст файла"]
+  W --> R["Текст после записи:<br/>Write = новое содержимое,<br/>Edit / MultiEdit = замены по очереди"]
+  R --> G{"G1 или G2:<br/>защищённый файл?"}
+  G -->|"да"| BLOCK
+  G -->|"нет"| J{"Файл .java?"}
+  J -->|"нет"| OK
+  J -->|"да"| V["findViolations до и после записи<br/>снимок до сохраняется для PostToolUse"]
+  V --> NV["newViolations: только то,<br/>чего не было до записи"]
+  NV --> H{"Есть новые жёсткие J1–J6<br/>не из disable?"}
+  H -->|"да"| BLOCK
+  H -->|"нет"| OK

@@ -1,0 +1,23 @@
+flowchart TB
+  T(["User's task"]) --> CTX
+
+  subgraph CTX["Always in the model's context"]
+    direction LR
+    R["Router using-java-best-practices<br/>13 rules + which skill when"]
+    P["Project passport from the hook<br/>Maven · Java 21 · Boot 4.0 · Lombok"]
+    C["Skill catalog<br/>names and descriptions only"]
+  end
+
+  CTX --> D{"Which stage?"}
+  D -->|"design"| S1["java-design-decisions"]
+  D -->|"new class, package, module"| S2["java-conventions"]
+  D -->|"code"| S3["java-language<br/>spring-boot-service<br/>spring-data-jpa"]
+  D -->|"tests"| S4["java-testing"]
+  D -->|"review"| S5["java-code-review"]
+  D -->|"gates in the project"| S6["java-quality-gates"]
+
+  S1 & S2 & S3 & S4 & S5 & S6 --> L["The model loads SKILL.md,<br/>then references/*.md when linked"]
+  L --> W["Writes code in small steps"]
+  W --> H["Hooks check every write,<br/>compile at the end of the turn"]
+  H -->|"refusal or remark"| W
+  H --> V["java-verification:<br/>'done' only with build output"]

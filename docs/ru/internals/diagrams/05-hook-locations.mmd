@@ -1,0 +1,21 @@
+flowchart LR
+  subgraph CU["Claude Code, плагин (--scope user)"]
+    a1[".claude-plugin/plugin.json"] --> a2["hooks/hooks.json<br/>путь: ${CLAUDE_PLUGIN_ROOT}"]
+  end
+  subgraph CP["Claude Code, проект (--scope project)"]
+    b1[".claude/settings.json<br/>ключ hooks"] --> b2[".claude/forbxpg-java/hooks/<br/>путь: $CLAUDE_PROJECT_DIR"]
+  end
+  subgraph GU["GigaCode, расширение (--scope user)"]
+    c1["gigacode extensions link<br/>ссылка на папку репозитория"] --> c2["gigacode-extension.json<br/>ключ hooks, путь: ${extensionPath}"]
+  end
+  subgraph GP["GigaCode, проект (--scope project)"]
+    d1[".gigacode/settings.json<br/>ключ hooks"] --> d2[".gigacode/forbxpg-java/hooks/<br/>путь от корня проекта"]
+  end
+  subgraph CX["Codex, плагин"]
+    e1[".codex-plugin/plugin.json<br/>hooks: ./hooks/hooks-codex.json"] --> e2["hooks/hooks-codex.json<br/>путь: ${PLUGIN_ROOT}"]
+  end
+  a2 --> E["java-hooks.mjs Event --harness X<br/>один и тот же код"]
+  b2 --> E
+  c2 --> E
+  d2 --> E
+  e2 --> E

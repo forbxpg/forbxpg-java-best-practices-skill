@@ -1,0 +1,12 @@
+flowchart LR
+  T["os.tmpdir()/forbxpg-java/"] --> P["12 символов sha1 корня проекта/"]
+  P --> PP["passport.json<br/>кэш паспорта по mtime и размеру pom.xml"]
+  P --> S["session_id/"]
+  S --> s1["compacted.json<br/>было сжатие, ждём сообщения"]
+  S --> s2["contextWarned.json<br/>handoff уже просили"]
+  S --> s3["lastOkFingerprint.json<br/>отпечаток последней успешной сборки"]
+  S --> s4["blocksSinceOk.json<br/>сколько раз Stop блокировал"]
+  S --> s5["pre-ID вызова-хэш пути.json<br/>нарушения до записи, живёт до PostToolUse"]
+  S --> s6["changed/*.txt<br/>изменённые .java, по файлу на путь"]
+  S --> s7["roles/*.txt<br/>роли, правила которых уже показаны"]
+  S --> s8["hook.log<br/>внутренние ошибки хука"]

@@ -1,0 +1,23 @@
+flowchart TB
+  T(["Задача пользователя"]) --> CTX
+
+  subgraph CTX["Всегда в контексте модели"]
+    direction LR
+    R["Роутер using-java-best-practices<br/>13 правил + какой скилл когда"]
+    P["Паспорт проекта от хука<br/>Maven · Java 21 · Boot 4.0 · Lombok"]
+    C["Каталог скиллов<br/>только имена и описания"]
+  end
+
+  CTX --> D{"Какой этап?"}
+  D -->|"проектирование"| S1["java-design-decisions"]
+  D -->|"новый класс, пакет, модуль"| S2["java-conventions"]
+  D -->|"код"| S3["java-language<br/>spring-boot-service<br/>spring-data-jpa"]
+  D -->|"тесты"| S4["java-testing"]
+  D -->|"ревью"| S5["java-code-review"]
+  D -->|"гейты в проект"| S6["java-quality-gates"]
+
+  S1 & S2 & S3 & S4 & S5 & S6 --> L["Модель загружает SKILL.md,<br/>по ссылкам — references/*.md"]
+  L --> W["Пишет код маленькими шагами"]
+  W --> H["Хуки проверяют каждую запись,<br/>в конце хода компилируют"]
+  H -->|"отказ или замечание"| W
+  H --> V["java-verification:<br/>«готово» только с выводом сборки"]

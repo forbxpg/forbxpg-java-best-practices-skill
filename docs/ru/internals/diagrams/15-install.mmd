@@ -1,0 +1,19 @@
+flowchart TB
+  A["node install.mjs --agent gigacode|claude --scope user|project"] --> SC{"--scope"}
+  SC -->|"user"| U{"--agent"}
+  U -->|"gigacode"| UG["gigacode extensions link репо<br/>на вопрос Y/n отвечает Y"]
+  U -->|"claude"| UC["claude plugin marketplace add репо<br/>claude plugin install forbxpg-java@forbxpg-java"]
+  UG --> UDONE["Папка репозитория подключена ко всем проектам,<br/>обновление: git pull"]
+  UC --> UDONE
+  SC -->|"project"| UN{"--uninstall?"}
+  UN -->|"да"| RM["По квитанции: удалить файлы,<br/>вычистить свои хуки из settings.json,<br/>убрать строку импорта из GIGACODE.md,<br/>вернуть исходные файлы байт в байт"]
+  UN -->|"нет"| V["Проверить settings.json:<br/>строгий JSON, иначе отказ"]
+  V --> PL["План: skills/ и hooks/ в .gigacode/ или .claude/<br/>sha256 файла против квитанции"]
+  PL --> CHG{"Файл в проекте<br/>правили?"}
+  CHG -->|"да, без --force"| SKIP["оставить, назвать в выводе"]
+  CHG -->|"нет или --force"| WR["записать"]
+  SKIP --> DRY{"--dry-run?"}
+  WR --> DRY
+  DRY -->|"да"| PRINT["напечатать план, ничего не писать"]
+  DRY -->|"нет"| DO["Записать файлы, удалить выброшенные новой версией,<br/>слить хуки в settings.json,<br/>GigaCode: строка @-импорта роутера в GIGACODE.md"]
+  DO --> REC["install-receipt.json:<br/>версия, файлы и sha256, исходные settings и GIGACODE.md"]
