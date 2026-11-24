@@ -35,7 +35,7 @@ function handlePatch(input, tool, ctx) {
   const passport = readPassport(ctx.projectDir);
   const found = [];
   for (const file of tool.files) {
-    const abs = resolve(ctx.projectDir, file.path);
+    const abs = resolve(ctx.cwd ?? ctx.projectDir, file.path);
     const original = readText(abs);
     const guard = checkProtectedPath(abs, ctx.projectDir, { original, result: file.op === 'delete' ? '' : null });
     if (guard) found.push(guard);
@@ -56,7 +56,7 @@ export function handlePreToolUse(input, ctx) {
   if (tool.kind === 'patch') return handlePatch(input, tool, ctx);
   if ((tool.kind !== 'write' && tool.kind !== 'edit') || !tool.filePath) return {};
 
-  const abs = resolve(ctx.projectDir, tool.filePath);
+  const abs = resolve(ctx.cwd ?? ctx.projectDir, tool.filePath);
   const original = readText(abs);
   const result = resultOf(tool, original);
   const protectedFile = checkProtectedPath(abs, ctx.projectDir, { original, result });

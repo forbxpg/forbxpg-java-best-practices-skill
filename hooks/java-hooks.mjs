@@ -3,7 +3,7 @@
 import { homedir } from 'node:os';
 import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { projectDir, isMavenProject } from './lib/io.mjs';
+import { projectDir, findMavenRoot } from './lib/io.mjs';
 import { sessionDir, logError } from './lib/state.mjs';
 import { loadConfig } from './lib/config.mjs';
 import { handlePreToolUse } from './lib/pre.mjs';
@@ -42,13 +42,13 @@ export async function main(argv, stdinText, env) {
     logError(sessionDir(projectDir(null, env), 'unknown'), `invalid JSON on stdin: ${err.message}`);
     return { ...EMPTY };
   }
-  const dir = projectDir(input, env);
   const handler = HANDLERS[event];
-  if (!handler || !isMavenProject(dir)) return { ...EMPTY };
+  const dir = handler ? findMavenRoot(input, env) : null;
+  if (!dir) return { ...EMPTY };
   const stateDir = sessionDir(dir, input.session_id);
   try {
     const ctx = {
-      env, harness, projectDir: dir, stateDir,
+      env, harness, projectDir: dir, cwd: projectDir(input, env), stateDir,
       homeDir: env.HOME || env.USERPROFILE || homedir(),
       platform: process.platform,
     };

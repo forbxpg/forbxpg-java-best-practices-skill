@@ -22,12 +22,12 @@ function takeSnapshot(input, abs, ctx) {
 function writtenFiles(input, tool, ctx) {
   if (tool.kind === 'write' || tool.kind === 'edit') {
     if (!tool.filePath) return [];
-    const abs = resolve(ctx.projectDir, tool.filePath);
+    const abs = resolve(ctx.cwd ?? ctx.projectDir, tool.filePath);
     return [{ abs, before: takeSnapshot(input, abs, ctx) }];
   }
   if (tool.kind === 'patch') {
     return tool.files.filter((f) => f.op !== 'delete').map((f) => {
-      const abs = resolve(ctx.projectDir, f.path);
+      const abs = resolve(ctx.cwd ?? ctx.projectDir, f.path);
       return { abs, before: f.op === 'add' ? [] : takeSnapshot(input, abs, ctx) };
     });
   }

@@ -1,6 +1,6 @@
 // Hook input: project folder, tool normalisation across Claude Code, GigaCode and Codex.
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readdirSync } from 'node:fs';
+import { join, dirname, resolve } from 'node:path';
 
 const WRITE_TOOLS = new Set(['write_file', 'Write']);
 const EDIT_TOOLS = new Set(['edit', 'replace', 'Edit', 'MultiEdit']);
@@ -14,6 +14,38 @@ export function projectDir(input, env) {
 
 export function isMavenProject(dir) {
   return existsSync(join(dir, 'pom.xml'));
+}
+
+/** Highest folder of the unbroken pom.xml chain at or above `start` (a module climbs to its aggregator). */
+function topPomDir(start) {
+  let found = null;
+  for (let dir = resolve(start); ; dir = dirname(dir)) {
+    if (isMavenProject(dir)) found = dir;
+    else if (found) return found;
+    if (dirname(dir) === dir) return found;
+  }
+}
+
+function onlyChildProject(dir) {
+  let entries;
+  try {
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return null;
+  }
+  const projects = entries.filter((e) => e.isDirectory() && !e.name.startsWith('.') && isMavenProject(join(dir, e.name)));
+  return projects.length === 1 ? join(dir, projects[0].name) : null;
+}
+
+/**
+ * Maven project the hook works on, or null: above the written file, else above the session folder,
+ * else the only child folder with a pom.xml (a session opened at a git root above backend/).
+ */
+export function findMavenRoot(input, env) {
+  const base = projectDir(input, env);
+  const tool = normalizeTool(input);
+  const file = tool.filePath ?? tool.files?.[0]?.path;
+  return (file && topPomDir(dirname(resolve(base, file)))) || topPomDir(base) || onlyChildProject(base);
 }
 
 function pick(obj, ...keys) {
