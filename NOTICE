@@ -1,0 +1,39 @@
+forbxpg-java
+Copyright (c) 2026 forbxpg — MIT License (see LICENSE).
+
+This project adapts ideas, structure and some wording from the following projects.
+No source files were copied verbatim; rule sets and examples were rewritten for this
+project's conventions.
+
+decebals/claude-code-java — MIT License, Copyright (c) 2026 Decebal Suiu
+  https://github.com/decebals/claude-code-java
+  Adapted: repository layout per the Agent Skills specification, skill validation and the
+  routing-eval approach (evals/routing.tsv), review checklists (concurrency, performance,
+  security, API contract).
+
+piomin/claude-ai-spring-boot — Apache License 2.0, Copyright Piotr Minkowski
+  https://github.com/piomin/claude-ai-spring-boot
+  Adapted: Spring Boot 4 conventions (ProblemDetail everywhere, RestClient / @HttpExchange,
+  Jackson 3, @MockitoBean, ddl-auto validate, open-in-view false), the always-on
+  conventions skill and references-on-demand structure.
+
+a-pavithraa/springboot-skills-marketplace — MIT License, Copyright (c) 2026 Pavithra
+  https://github.com/a-pavithraa/springboot-skills-marketplace
+  Adapted: rules enforced by build gates and hooks rather than prose; the PreToolUse guard
+  (force-push, reset --hard, skipped gates, applied migrations, gate files); the Stop-hook
+  compile limited to the session's own files with a retry cap; the ArchUnit rule list and
+  FreezingArchRule baseline; trial-driven skill design.
+
+Jeffallan/claude-skills — MIT License, Copyright (c) 2025 Jeffallan
+  https://github.com/Jeffallan/claude-skills
+  Adapted: SKILL.md shape — workflow with verification steps, MUST / MUST NOT,
+  "Reference → Load when" table.
+
+rrezartprebreza/spring-boot-skills — MIT License, Copyright (c) 2026 Rrezart Prebreza
+  https://github.com/rrezartprebreza/spring-boot-skills
+  Adapted: "Gotchas" sections; evidence-based verification report (PASS / FAIL / NOT RUN,
+  zero tests at exit 0 is not a pass).
+
+Marisha-Sahay/awesome-java-agent-skills — MIT License, Copyright (c) 2026 Marisha Sahay
+  https://github.com/Marisha-Sahay/awesome-java-agent-skills
+  Adapted: the Verification block quoting Surefire / Failsafe summary lines.
