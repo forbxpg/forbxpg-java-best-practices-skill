@@ -127,7 +127,7 @@ hooks/lib/stop.mjs, docs/{en,ru}/how-it-works.md; tests
 2. Fix (role rules become a function of the passport). Commit
    `fix(hooks): version-aware advice and a handoff fallback without grillspec`.
 
-- [ ] 3.4 State M5 — verify: node --test passes
+- [x] 3.4 State M5 — verify: node --test passes
 
 Covers: — · Test: reproduce-first
 

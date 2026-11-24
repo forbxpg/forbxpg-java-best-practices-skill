@@ -4,7 +4,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { main } from '../hooks/java-hooks.mjs';
 import { ROLE_RULES, detectRole } from '../hooks/lib/roles.mjs';
-import { readState, sessionDir } from '../hooks/lib/state.mjs';
+import { changedFiles, sessionDir } from '../hooks/lib/state.mjs';
 import { tempProject, uniqueSession, BOOT4_POM } from './helpers.mjs';
 
 /** Runs PreToolUse, performs the write, runs PostToolUse; returns the PostToolUse context ('' when none). */
@@ -44,7 +44,7 @@ test('a clean write of an already seen role gives no output; changedFiles is rec
   const session = uniqueSession();
   await writeThrough(dir, session, 'src/main/java/a/AService.java', '@Service\nclass AService {}\n');
   assert.equal(await writeThrough(dir, session, 'src/main/java/a/BService.java', '@Service\nclass BService {}\n'), '');
-  const changed = readState(sessionDir(dir, session), 'changedFiles', []);
+  const changed = changedFiles(sessionDir(dir, session));
   assert.equal(changed.length, 2);
   assert.ok(changed.every((f) => f.endsWith('Service.java')));
 });

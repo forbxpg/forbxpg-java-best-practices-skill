@@ -1,5 +1,5 @@
 // Per-session hook state outside the project: <tmp>/forbxpg-java/<project hash>/<session>/.
-import { mkdirSync, readFileSync, writeFileSync, appendFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync, appendFileSync, readdirSync, rmSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -42,3 +42,36 @@ export function logError(dir, err) {
     // Logging must never break the hook.
   }
 }
+
+export function removeState(dir, key) {
+  rmSync(keyFile(dir, key), { force: true });
+}
+
+/*
+ * Sets kept as one marker file per member, so parallel hook processes never overwrite each
+ * other (a shared JSON list loses entries under a read-modify-write race).
+ */
+const markerFile = (dir, set, key) => join(dir, set, `${sha1(key).slice(0, 16)}.txt`);
+
+/** Adds key to the set; true when this call added it, false when it was already there. */
+export function claimOnce(dir, set, key) {
+  mkdirSync(join(dir, set), { recursive: true });
+  try {
+    writeFileSync(markerFile(dir, set, key), key, { flag: 'wx' });
+    return true;
+  } catch (err) {
+    if (err.code === 'EEXIST') return false;
+    throw err;
+  }
+}
+
+export function members(dir, set) {
+  try {
+    return readdirSync(join(dir, set)).sort().map((f) => readFileSync(join(dir, set, f), 'utf8'));
+  } catch {
+    return [];
+  }
+}
+
+export const addChangedFile = (dir, path) => claimOnce(dir, 'changed', path);
+export const changedFiles = (dir) => members(dir, 'changed');

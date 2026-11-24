@@ -10,7 +10,7 @@ import { checkShell } from '../hooks/lib/guard.mjs';
 import { handleStop } from '../hooks/lib/stop.mjs';
 import { runCompile, mavenCommand } from '../hooks/lib/maven.mjs';
 import { normalizeTool } from '../hooks/lib/io.mjs';
-import { sessionDir, writeState } from '../hooks/lib/state.mjs';
+import { sessionDir, writeState, addChangedFile } from '../hooks/lib/state.mjs';
 import { tempProject, uniqueSession, BOOT4_POM } from './helpers.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -74,7 +74,7 @@ test('I6: the Stop retry cap holds when the model keeps editing between attempts
   const dir = tempProject({ 'pom.xml': BOOT4_POM, 'src/main/java/a/Foo.java': 'class Foo {}' });
   const foo = join(dir, 'src/main/java/a/Foo.java');
   const ctx = { projectDir: dir, stateDir: sessionDir(dir, uniqueSession()), harness: 'claude', platform: process.platform, config: { stopCompile: true, contextWarnAt: 0.7 } };
-  writeState(ctx.stateDir, 'changedFiles', [foo]);
+  addChangedFile(ctx.stateDir, foo);
   const run = async () => ({ ok: false, timedOut: false, output: `[ERROR] ${foo}:[1,1] boom` });
   const decisions = [];
   for (let i = 0; i < 3; i += 1) {

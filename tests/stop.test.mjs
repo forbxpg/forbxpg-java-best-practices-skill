@@ -4,7 +4,7 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { handleStop } from '../hooks/lib/stop.mjs';
 import { mavenCommand, parseCompileErrors } from '../hooks/lib/maven.mjs';
-import { sessionDir, writeState } from '../hooks/lib/state.mjs';
+import { sessionDir, writeState, addChangedFile } from '../hooks/lib/state.mjs';
 import { tempProject, uniqueSession, BOOT4_POM } from './helpers.mjs';
 
 const FOO = 'src/main/java/a/Foo.java';
@@ -12,7 +12,7 @@ const FOO = 'src/main/java/a/Foo.java';
 function setup({ config = {}, changed = [FOO] } = {}) {
   const dir = tempProject({ 'pom.xml': BOOT4_POM, [FOO]: 'class Foo {}', 'src/main/java/a/Other.java': 'class Other {}' });
   const ctx = { projectDir: dir, stateDir: sessionDir(dir, uniqueSession()), harness: 'claude', platform: process.platform, config: { anchor: null, stopCompile: true, contextWarnAt: 0.7, ...config } };
-  writeState(ctx.stateDir, 'changedFiles', changed.map((rel) => join(dir, rel)));
+  for (const rel of changed) addChangedFile(ctx.stateDir, join(dir, rel));
   return { dir, ctx };
 }
 
@@ -124,7 +124,7 @@ test('compile errors reported under the real path still match files changed thro
   const link = `${dir}-link`;
   symlinkSync(dir, link, 'junction');
   const linked = { ...ctx, projectDir: link };
-  writeState(ctx.stateDir, 'changedFiles', [join(link, FOO)]);
+  addChangedFile(ctx.stateDir, join(link, FOO));
   const fake = fakeCompile({ output: `[ERROR] ${join(realpathSync(dir), FOO)}:[1,5] illegal start of expression` });
   assert.equal(parse(await handleStop({}, linked, fake.run)).decision, 'block');
 });
