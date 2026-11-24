@@ -1,0 +1,15 @@
+flowchart TB
+  S["Input: session cwd<br/>or CLAUDE_PROJECT_DIR / GIGACODE_PROJECT_DIR / QWEN_PROJECT_DIR"] --> F{"Does the tool write a file?<br/>write, edit, patch"}
+  F -->|"yes"| A["File path from the session folder<br/>climb up from the file's folder"]
+  A --> AQ{"Found a pom.xml?"}
+  AQ -->|"yes"| TOP["Keep climbing while the parent<br/>also has a pom.xml: module → aggregator"]
+  AQ -->|"no"| B
+  F -->|"no"| B["Climb up from the session folder"]
+  B --> BQ{"Found a pom.xml?"}
+  BQ -->|"yes"| TOP
+  BQ -->|"no"| C["Subfolders of the session folder<br/>except hidden ones"]
+  C --> CQ{"Exactly one<br/>with a pom.xml?"}
+  CQ -->|"yes, for example backend/"| R["Project root found"]
+  CQ -->|"none or several"| N["null: the hook silently exits with code 0"]
+  TOP --> R
+  R --> U["The root is needed for: the passport, rules,<br/>forbxpg-java.json, git checks G1/G2,<br/>compilation, the state folder"]

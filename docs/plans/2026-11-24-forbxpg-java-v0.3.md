@@ -59,7 +59,7 @@ Covers: R-DOCS-2 · Test: none: prose
 
 Files: modify docs/ru/internals/*.md, docs/ru/how-it-works.md, docs/ru/configuration.md
 
-- [ ] 2.2 English internals — verify: link check passes and render-diagrams exits 0
+- [x] 2.2 English internals — verify: link check passes and render-diagrams exits 0
 
 Covers: R-DOCS-1 · Test: none: prose and diagrams
 

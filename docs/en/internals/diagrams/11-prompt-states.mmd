@@ -1,0 +1,10 @@
+stateDiagram-v2
+  state "Session start" as Start
+  state "Normal work" as Normal
+  state "Context compacted" as Compacted
+
+  [*] --> Start: SessionStart startup, resume, clear
+  Start --> Normal: passport, plus the router in Claude and Codex
+  Normal --> Normal: UserPromptSubmit, anchor up to 60 tokens in GigaCode
+  Normal --> Compacted: PostCompact in GigaCode or SessionStart compact in Claude
+  Compacted --> Normal: next UserPromptSubmit, recovery block up to 500 tokens and broken rules

@@ -1,0 +1,18 @@
+flowchart TB
+  S["PostToolUse: the write is already on disk"] --> F["Files of this call<br/>+ the before-write violation snapshot from PreToolUse"]
+  F --> L{"For each file:<br/>does it exist?"}
+  L -->|"no"| NEXT["next file"]
+  L -->|"yes"| J{".java?"}
+  J -->|"yes"| CH["addChangedFile:<br/>mark for Stop"]
+  CH --> SN{"Is there a before snapshot?"}
+  SN -->|"yes"| NV["newViolations before and after:<br/>new W, and in Codex also J"]
+  SN -->|"no"| ROLE
+  NV --> ROLE
+  J -->|"no"| ROLE["detectRole: controller, service,<br/>repository, entity, dto, mapper, config,<br/>exception-handler, test, liquibase"]
+  ROLE --> RQ{"Role for the first time<br/>in this session?"}
+  RQ -->|"yes"| RR["3–5 role rules<br/>aware of the Boot version and migrations"]
+  RQ -->|"no"| NEXT
+  RR --> NEXT
+  NEXT --> M{"Any messages?"}
+  M -->|"yes"| OUT["stdout: JSON hookSpecificOutput.additionalContext"]
+  M -->|"no"| Z["exit 0, empty"]

@@ -1,0 +1,14 @@
+flowchart TB
+  T[".java text and path"] --> SC["stripCommentsAndStrings:<br/>comments and strings replaced with spaces,<br/>positions and line numbers preserved"]
+  SC --> LN["Line-by-line pass"]
+  LN --> R1["Line regexes:<br/>J1–J6, W2–W4, W6–W11"]
+  LN --> R2["Annotation block above a declaration:<br/>W1 entity with @Data, W12 DTO with @Data"]
+  SC --> R3["Empty catch: W5"]
+  P["Passport: Boot version, MapStruct"] --> R1
+  PATH["src/main or src/test"] --> R1
+  R1 --> V["Violations: id, line, line text"]
+  R2 --> V
+  R3 --> V
+  V --> NV["newViolations before and after:<br/>multiset of id + line text pairs"]
+  NV --> PRE["PreToolUse: new hard → block"]
+  NV --> POST["PostToolUse: new soft → remarks"]

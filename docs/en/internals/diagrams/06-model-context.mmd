@@ -1,0 +1,26 @@
+flowchart LR
+  subgraph OUT["What the hook returned"]
+    o1["SessionStart: text on stdout"]
+    o2["UserPromptSubmit: JSON<br/>additionalContext"]
+    o3["PreToolUse: exit 2 + stderr"]
+    o4["PostToolUse: JSON<br/>additionalContext"]
+    o5["Stop: JSON<br/>decision = block, reason"]
+    o6["Stop: JSON systemMessage"]
+    o7["exit 0 with no output"]
+  end
+  subgraph CTX["Where it ends up"]
+    c1["Context at session start,<br/>before the first message"]
+    c2["Next to the user's message<br/>in the same turn"]
+    c3["Instead of the tool result:<br/>error, write not performed"]
+    c4["Next to the tool result:<br/>the freshest place in the context"]
+    c5["The model cannot finish the turn:<br/>reason becomes the next instruction"]
+    c6["Only on the user's screen,<br/>the model does not see it"]
+    c7["Nowhere: the model does not know about the hook"]
+  end
+  o1 --> c1
+  o2 --> c2
+  o3 --> c3
+  o4 --> c4
+  o5 --> c5
+  o6 --> c6
+  o7 --> c7

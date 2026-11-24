@@ -1,0 +1,20 @@
+flowchart TB
+  A["Harness: an event happened,<br/>matcher matched the tool name"] --> B["New process:<br/>node java-hooks.mjs Event --harness X"]
+  B --> C["stdin: event JSON<br/>session_id, cwd, tool_name, tool_input ..."]
+  C --> D{"JSON parsed?"}
+  D -->|"no"| L1["line in hook.log<br/>exit 0"]
+  D -->|"yes"| E{"Is there a handler<br/>for the event?"}
+  E -->|"no"| Z["exit 0, no output"]
+  E -->|"yes"| F["findMavenRoot:<br/>looks for the Maven project root"]
+  F --> G{"Root found?"}
+  G -->|"no: not a Java project"| Z
+  G -->|"yes"| H["ctx: root, session folder,<br/>stateDir, forbxpg-java.json"]
+  H --> I["Event handler<br/>pre / post / session / stop"]
+  I --> J{"Exception?"}
+  J -->|"yes"| L2["hook.log, exit 0<br/>fail open: do not get in the way"]
+  J -->|"no"| K["Result: exit code,<br/>stdout, stderr"]
+  K --> R{"How the harness reads the result"}
+  R --> R0["exit 0, empty:<br/>nothing happens"]
+  R --> R2["exit 2:<br/>action cancelled, stderr goes to the model"]
+  R --> RJ["exit 0 + JSON:<br/>additionalContext, decision, systemMessage"]
+  R --> RT["exit 0 + plain text in SessionStart:<br/>text is added to the context"]

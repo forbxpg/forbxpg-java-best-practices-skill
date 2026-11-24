@@ -1,0 +1,35 @@
+flowchart TB
+  subgraph Repo["forbxpg-java repository"]
+    direction LR
+    manifests["Manifests<br/>.claude-plugin/<br/>gigacode-extension.json<br/>.codex-plugin/"]
+    skills["skills/<br/>10 skills + router"]
+    hookcode["hooks/java-hooks.mjs<br/>hooks/lib/*.mjs"]
+  end
+
+  subgraph Harness["Agent harness"]
+    direction LR
+    loader["Plugin or extension<br/>loader"]
+    engine["Hook engine"]
+    ctx["Model context"]
+    model(["LLM"])
+  end
+
+  subgraph Runtime["At runtime"]
+    direction LR
+    proc["Hook process<br/>node java-hooks.mjs Event"]
+    project[("Java project<br/>pom.xml, src/, git")]
+    tmp[("tmp/forbxpg-java/<br/>session state")]
+  end
+
+  manifests -->|"1. read at startup"| loader
+  skills -->|"2. names, descriptions, router"| loader
+  loader --> ctx
+  loader -->|"3. registers commands"| engine
+  ctx --> model
+  model -->|"4. tool call or end of turn"| engine
+  engine -->|"5. launch, JSON on stdin"| proc
+  hookcode -.->|"process code"| proc
+  proc -->|"reads"| project
+  proc -->|"writes"| tmp
+  proc -->|"6. exit code, stdout, stderr"| engine
+  engine -->|"7. hook text"| ctx
