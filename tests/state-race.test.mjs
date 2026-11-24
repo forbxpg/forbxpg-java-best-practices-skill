@@ -6,7 +6,7 @@ import { existsSync, mkdirSync, writeFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { main } from '../hooks/java-hooks.mjs';
-import { sessionDir, changedFiles } from '../hooks/lib/state.mjs';
+import { sessionDir, changedFiles, markViolated, recentViolations } from '../hooks/lib/state.mjs';
 import { tempProject, uniqueSession, BOOT4_POM } from './helpers.mjs';
 
 const HOOK = join(dirname(fileURLToPath(import.meta.url)), '..', 'hooks', 'java-hooks.mjs');
@@ -46,4 +46,15 @@ test('M5: the PreToolUse snapshot is removed once PostToolUse has used it', asyn
   await main(['PostToolUse', '--harness', 'gigacode'], JSON.stringify(input), {});
   assert.ok(!readdirSync(state).some((f) => f.startsWith('pre-')), 'snapshot removed');
   assert.ok(existsSync(state));
+});
+
+test('one corrupt violation marker does not hide the others', () => {
+  const dir = tempProject({ 'pom.xml': BOOT4_POM });
+  const state = sessionDir(dir, uniqueSession());
+  markViolated(state, 'J1');
+  markViolated(state, 'W1');
+  writeFileSync(join(state, 'violated', 'broken.txt'), '{');
+  const ids = recentViolations(state);
+  assert.ok(ids.includes('J1'));
+  assert.ok(ids.includes('W1'));
 });

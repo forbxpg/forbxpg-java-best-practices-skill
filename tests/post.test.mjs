@@ -4,7 +4,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { main } from '../hooks/java-hooks.mjs';
 import { ROLE_RULES, detectRole } from '../hooks/lib/roles.mjs';
-import { changedFiles, sessionDir } from '../hooks/lib/state.mjs';
+import { changedFiles, claimOnce, recentRoles, sessionDir } from '../hooks/lib/state.mjs';
 import { tempProject, uniqueSession, BOOT4_POM } from './helpers.mjs';
 
 /** Runs PreToolUse, performs the write, runs PostToolUse; returns the PostToolUse context ('' when none). */
@@ -27,6 +27,15 @@ test('R-POST-1: a write adding @Data to an @Entity reports W1', async () => {
   const dir = tempProject({ 'pom.xml': BOOT4_POM });
   const context = await writeThrough(dir, uniqueSession(), 'src/main/java/a/Order.java', '@Entity\n@Data\npublic class Order {}\n');
   assert.match(context, /W1/);
+});
+
+test('a role claimed before roleSeen existed is backfilled for the anchor', async () => {
+  const dir = tempProject({ 'pom.xml': BOOT4_POM });
+  const session = uniqueSession();
+  claimOnce(sessionDir(dir, session), 'roles', 'controller');
+  const context = await writeThrough(dir, session, 'src/main/java/a/FooController.java', '@RestController\nclass FooController {}\n');
+  assert.doesNotMatch(context, /controller rules/);
+  assert.ok(recentRoles(sessionDir(dir, session)).includes('controller'));
 });
 
 test('R-POST-2 / S-POST-2a: controller rules come once per session', async () => {

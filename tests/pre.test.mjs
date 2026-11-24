@@ -1,8 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { main } from '../hooks/java-hooks.mjs';
+import { handlePreToolUse } from '../hooks/lib/pre.mjs';
 import { applyEdit } from '../hooks/lib/edit.mjs';
 import { checkShell } from '../hooks/lib/guard.mjs';
 import { tempProject, uniqueSession, BOOT4_POM } from './helpers.mjs';
@@ -64,6 +66,41 @@ test('G2: rewriting a committed CodeRulesTest is blocked; creating it is allowed
   const result = await pre(dir, 'write_file', { file_path: join(dir, rel), content: 'class CodeRulesTest { }' });
   assert.equal(result.exitCode, 2);
   assert.match(result.stderr, /G2/);
+});
+
+test('G2: a patch cannot edit a committed gate file in a second Maven project', async () => {
+  const aJava = 'a/src/main/java/A.java';
+  const bTest = 'b/src/test/java/CodeRulesTest.java';
+  const root = tempProject({
+    'a/pom.xml': BOOT4_POM,
+    [aJava]: 'class A {}',
+    'b/pom.xml': BOOT4_POM,
+    [bTest]: 'class CodeRulesTest {}',
+  });
+  const git = (...args) => execFileSync('git', ['-C', root, '-c', 'user.name=t', '-c', 'user.email=t@t', ...args], { stdio: 'pipe' });
+  git('init', '-q', '-b', 'main');
+  git('add', '.');
+  git('commit', '-q', '-m', 'init');
+  const safe = await pre(root, 'apply_patch', { input: `*** Begin Patch\n*** Update File: ${aJava}\n*** End Patch` });
+  assert.equal(safe.exitCode, 0);
+  const result = await pre(root, 'apply_patch', {
+    input: `*** Begin Patch\n*** Update File: ${aJava}\n*** Update File: ${bTest}\n*** End Patch`,
+  });
+  assert.equal(result.exitCode, 2);
+  assert.match(result.stderr, /G2/);
+});
+
+test('a state-directory failure still blocks the write', async () => {
+  const dir = tempProject({ 'pom.xml': BOOT4_POM, [FOO]: 'class Foo {\n  void a() {}\n}\n' });
+  const state = join(dir, 'state-file');
+  writeFileSync(state, 'not a directory');
+  const input = {
+    session_id: 's', cwd: dir, tool_name: 'edit', tool_use_id: 't',
+    tool_input: { file_path: join(dir, FOO), old_string: 'void a() {}', new_string: '@Autowired private Foo foo;\n  void a() {}' },
+  };
+  const result = await handlePreToolUse(input, { projectDir: dir, cwd: dir, stateDir: state, config: {} });
+  assert.equal(result.exitCode, 2);
+  assert.match(result.stderr, /J1/);
 });
 
 test('S-PRE-S2: packaging without tests passes, gates without tests and force push are blocked', async () => {

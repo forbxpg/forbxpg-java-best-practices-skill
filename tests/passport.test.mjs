@@ -85,6 +85,23 @@ test('M3: Boot version from a BOM in a module of an aggregator root', () => {
   assert.equal(bootMajor(readPassport(dir)), 4);
 });
 
+test('passport cache invalidates when a module pom changes and the root pom does not', () => {
+  const dir = tempProject({
+    'pom.xml': `<project>${CORP_PARENT}<packaging>pom</packaging><modules><module>app</module></modules></project>`,
+    'app/pom.xml': '<project><dependencyManagement><dependencies><dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-dependencies</artifactId><version>4.0.7</version><type>pom</type><scope>import</scope></dependency></dependencies></dependencyManagement></project>',
+  });
+  const frozen = new Date(1_700_000_000_000);
+  utimesSync(join(dir, 'pom.xml'), frozen, frozen);
+  utimesSync(join(dir, 'app/pom.xml'), frozen, frozen);
+  assert.equal(readPassport(dir).boot, '4.0.7');
+  writeFileSync(join(dir, 'app/pom.xml'), readFileSync(join(dir, 'app/pom.xml'), 'utf8').replace('4.0.7', '3.5.4'));
+  utimesSync(join(dir, 'pom.xml'), frozen, frozen);
+  utimesSync(join(dir, 'app/pom.xml'), frozen, frozen);
+  assert.equal(readPassport(dir).boot, '4.0.7', 'unchanged module mtime stays cached');
+  utimesSync(join(dir, 'app/pom.xml'), frozen, new Date(frozen.getTime() + 5000));
+  assert.equal(readPassport(dir).boot, '3.5.4');
+});
+
 test('M3: Boot version from spring-boot-maven-plugin when nothing else names it', () => {
   const dir = tempProject({ 'pom.xml': `<project>${CORP_PARENT}<build><plugins><plugin><groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId><version>4.1.1</version></plugin></plugins></build></project>` });
   assert.equal(readPassport(dir).boot, '4.1.1');

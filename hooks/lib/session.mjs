@@ -2,7 +2,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readState, writeState, recentViolations, recentRoles } from './state.mjs';
+import { readState, writeState, recentViolations, recentRoles, logError } from './state.mjs';
 import { readPassport, passportLine } from './passport.mjs';
 import { anchorText, recoveryText, pickAnchorRules } from './anchor-text.mjs';
 
@@ -43,8 +43,13 @@ export function handleUserPromptSubmit(input, ctx) {
   const disabled = ctx.config.disable ?? [];
   const violated = recentViolations(ctx.stateDir).filter((id) => !disabled.includes(id));
   if (readState(ctx.stateDir, 'compacted', false)) {
-    writeState(ctx.stateDir, 'compacted', false);
-    return promptContext(recoveryText(passport, violated));
+    const text = recoveryText(passport, violated);
+    try {
+      writeState(ctx.stateDir, 'compacted', false);
+    } catch (err) {
+      logError(ctx.stateDir, err);
+    }
+    return promptContext(text);
   }
   const anchorOn = ctx.config.anchor ?? ctx.harness === 'gigacode';
   return anchorOn ? promptContext(anchorText(passport, pickAnchorRules(passport, violated, recentRoles(ctx.stateDir)))) : {};

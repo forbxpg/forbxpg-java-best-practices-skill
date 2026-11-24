@@ -37,8 +37,21 @@ const cases = {
     miss: [['class T { @Disabled @Test void t() {} }', MAIN]],
   },
   W1: {
-    catch: [['@Entity\n@Data\npublic class Order {}'], ['@lombok.EqualsAndHashCode\n@Entity\nclass Order {}'], ['@Entity @ToString class Order {}']],
-    miss: [['@Data\npublic class OrderDto {}'], ['@Entity\n@Getter\n@Setter\nclass Order {}'], ['@Entity @ToString(onlyExplicitlyIncluded = true) class O {}'], ['@Entity\n@EqualsAndHashCode(onlyExplicitlyIncluded = true)\nclass O {}']],
+    catch: [
+      ['@Entity\n@Data\npublic class Order {}'],
+      ['@lombok.EqualsAndHashCode\n@Entity\nclass Order {}'],
+      ['@Entity @ToString class Order {}'],
+      ['@Entity @ToString(onlyExplicitlyIncluded = true) @Data class O {}'],
+      ['@Entity @ToString(onlyExplicitlyIncluded = true) @EqualsAndHashCode class O {}'],
+    ],
+    miss: [
+      ['@Data\npublic class OrderDto {}'],
+      ['@Entity\n@Getter\n@Setter\nclass Order {}'],
+      ['@Entity @ToString(onlyExplicitlyIncluded = true) class O {}'],
+      ['@Entity\n@EqualsAndHashCode(onlyExplicitlyIncluded = true)\nclass O {}'],
+      ['@Entity\n@ToString(\n  onlyExplicitlyIncluded = true)\nclass O {}'],
+      ['@Entity\n@EqualsAndHashCode(onlyExplicitlyIncluded\n  = true)\nclass O {}'],
+    ],
   },
   W2: {
     catch: [['class O { @ManyToOne private Customer c; }'], ['class O {\n  @OneToOne(\n    optional = false)\n  private Customer c;\n}']],

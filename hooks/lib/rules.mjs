@@ -133,10 +133,14 @@ export function findViolations(text, { path = '', passport = {} } = {}) {
       const block = annotationBlock(lines, i, decl.index);
       const isEntity = block.some((b) => ENTITY.test(b.text));
       for (const b of block) {
-        const lombok = b.text.match(/@(lombok\.)?(Data|EqualsAndHashCode|ToString)\b/);
-        // onlyExplicitlyIncluded = true is the JPA-safe form: only fields marked @Include take part.
-        const explicit = lombok && lombok[2] !== 'Data' && /onlyExplicitlyIncluded\s*=\s*true/.test(b.text);
-        if (isEntity && lombok && !explicit) add('W1', b.idx);
+        if (isEntity) {
+          for (const lombok of b.text.matchAll(/@(lombok\.)?(Data|EqualsAndHashCode|ToString)\b/g)) {
+            // Arguments may continue on the next lines; the exception belongs to this annotation only.
+            const args = annotationArgs(lines, b.idx, lombok.index + lombok[0].length);
+            const explicit = lombok[2] !== 'Data' && args !== null && /onlyExplicitlyIncluded\s*=\s*true/.test(args);
+            if (!explicit) add('W1', b.idx);
+          }
+        }
         if (!isEntity && decl[1] === 'class' && /(Dto|Request|Response)$/.test(decl[2]) && /@(lombok\.)?Data\b/.test(b.text)) add('W12', b.idx);
       }
     }
