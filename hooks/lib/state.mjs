@@ -75,3 +75,31 @@ export function members(dir, set) {
 
 export const addChangedFile = (dir, path) => claimOnce(dir, 'changed', path);
 export const changedFiles = (dir) => members(dir, 'changed');
+
+function stamped(dir, set) {
+  try {
+    return readdirSync(join(dir, set)).map((f) => JSON.parse(readFileSync(join(dir, set, f), 'utf8')));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Records key in an ordered set with a stamp newer than every other member (one file per key,
+ * so parallel processes only race on the order of near-simultaneous keys, never lose one).
+ */
+function touch(dir, set, key) {
+  mkdirSync(join(dir, set), { recursive: true });
+  const at = Math.max(Date.now(), ...stamped(dir, set).map((m) => m.at + 1));
+  writeFileSync(markerFile(dir, set, key), JSON.stringify({ key, at }));
+}
+
+const newestFirst = (dir, set) => stamped(dir, set).sort((a, b) => b.at - a.at).map((m) => m.key);
+
+/** Rule ids reported to the model in this session, the latest first. */
+export const markViolated = (dir, id) => touch(dir, 'violated', id);
+export const recentViolations = (dir) => newestFirst(dir, 'violated');
+
+/** File roles in the order the session first wrote them, the latest first. */
+export const markRoleSeen = (dir, role) => touch(dir, 'roleSeen', role);
+export const recentRoles = (dir) => newestFirst(dir, 'roleSeen');

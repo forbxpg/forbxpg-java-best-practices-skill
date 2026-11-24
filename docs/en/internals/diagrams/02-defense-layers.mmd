@@ -1,0 +1,16 @@
+flowchart LR
+  subgraph L1["1. Knowledge: skills"]
+    r["Router always in context<br/>13 rules + skill table"]
+    s["Topic skills<br/>loaded per task"]
+  end
+  subgraph L2["2. In-session control: hooks"]
+    pre["PreToolUse<br/>blocks hard violations before a write"]
+    post["PostToolUse<br/>remarks and role rules after a write"]
+    stop["Stop<br/>compilation at the end of a turn"]
+  end
+  subgraph L3["3. Build-time control: gates"]
+    arch["ArchUnit CodeRulesTest<br/>13 rules on bytecode"]
+    ci["mvn verify in CI"]
+  end
+  L1 -->|"the model may forget or disobey"| L2
+  L2 -->|"regexes do not see types, rules can be disabled"| L3

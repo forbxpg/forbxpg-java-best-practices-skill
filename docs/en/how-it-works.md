@@ -1,5 +1,7 @@
 # How it works
 
+The short version. The full guide with a diagram for every hook: [forbxpg-java internals](internals/README.md).
+
 One entry point, `hooks/java-hooks.mjs <Event> --harness claude|gigacode|codex`, reads the
 hook input from stdin and dispatches to `hooks/lib/`. Outside a Maven project (no
 `pom.xml`) every hook exits 0 silently. Any internal error also exits 0 (fail open) and is
@@ -37,10 +39,12 @@ result — the freshest place in the model's context.
 
 ## Prompts and compaction
 
-- GigaCode: every prompt with text gets a ≤ 60-token anchor (passport + three rules).
-  GigaCode does not de-duplicate it, so it stays short.
+- GigaCode: every prompt with text gets a ≤ 60-token anchor: the passport and three rules.
+  The rules the model broke in this session come first, then the rules of the file roles
+  it touched, then the general ones. GigaCode does not de-duplicate it, so it stays short.
 - After `PostCompact` (GigaCode) or `SessionStart` with `source: compact` (Claude), the next
-  prompt gets a ≤ 400-token recovery block once.
+  prompt gets a ≤ 500-token recovery block once, including up to five rules broken in this
+  session with their fix.
 
 ## End of turn (Stop)
 

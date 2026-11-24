@@ -1,0 +1,22 @@
+flowchart TB
+  S["PreToolUse"] --> N["normalizeTool<br/>maps the three agents' tools to one form"]
+  N -->|"shell"| SH["checkShell: S1 dangerous git,<br/>S2 Maven gate with checks skipped"]
+  SH --> SHQ{"Violation and the rule<br/>not in disable?"}
+  SHQ -->|"yes"| BLOCK["exit 2<br/>stderr: rule, how to fix, example"]
+  SHQ -->|"no"| OK["exit 0: write allowed"]
+  N -->|"patch: Codex apply_patch"| P["For each file in the patch:<br/>G1 and G2, snapshot of .java violations"]
+  P --> PQ{"G1 or G2?"}
+  PQ -->|"yes"| BLOCK
+  PQ -->|"no"| OK
+  N -->|"other: read, search"| OK
+  N -->|"write or edit"| W["Path from the session folder,<br/>current file text"]
+  W --> R["Text after the write:<br/>Write = new content,<br/>Edit / MultiEdit = replacements in order"]
+  R --> G{"G1 or G2:<br/>protected file?"}
+  G -->|"yes"| BLOCK
+  G -->|"no"| J{".java file?"}
+  J -->|"no"| OK
+  J -->|"yes"| V["findViolations before and after the write<br/>the before snapshot is saved for PostToolUse"]
+  V --> NV["newViolations: only what<br/>was not there before the write"]
+  NV --> H{"New hard J1–J6<br/>not in disable?"}
+  H -->|"yes"| BLOCK
+  H -->|"no"| OK

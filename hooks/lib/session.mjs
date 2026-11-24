@@ -2,9 +2,9 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readState, writeState } from './state.mjs';
+import { readState, writeState, recentViolations, recentRoles } from './state.mjs';
 import { readPassport, passportLine } from './passport.mjs';
-import { anchorText, recoveryText } from './anchor-text.mjs';
+import { anchorText, recoveryText, pickAnchorRules } from './anchor-text.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 /** Router locations: this repository (hooks/lib → skills) and a project install (.claude/forbxpg-java/hooks/lib → .claude/skills). */
@@ -40,10 +40,12 @@ const promptContext = (text) => ({
 export function handleUserPromptSubmit(input, ctx) {
   if (!String(input.prompt ?? '').trim()) return {};
   const passport = readPassport(ctx.projectDir);
+  const disabled = ctx.config.disable ?? [];
+  const violated = recentViolations(ctx.stateDir).filter((id) => !disabled.includes(id));
   if (readState(ctx.stateDir, 'compacted', false)) {
     writeState(ctx.stateDir, 'compacted', false);
-    return promptContext(recoveryText(passport));
+    return promptContext(recoveryText(passport, violated));
   }
   const anchorOn = ctx.config.anchor ?? ctx.harness === 'gigacode';
-  return anchorOn ? promptContext(anchorText(passport)) : {};
+  return anchorOn ? promptContext(anchorText(passport, pickAnchorRules(passport, violated, recentRoles(ctx.stateDir)))) : {};
 }

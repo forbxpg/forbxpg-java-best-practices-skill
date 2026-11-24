@@ -1,0 +1,19 @@
+flowchart TB
+  S["Stop: the model is finishing its turn"] --> A{"context_usage ≥ contextWarnAt<br/>and no warning yet?<br/>only GigaCode sends context_usage"}
+  A -->|"yes"| HB["block: write a handoff,<br/>then finish"]
+  A -->|"no"| C{"stopCompile enabled?"}
+  C -->|"no"| E0["exit 0: turn finished"]
+  C -->|"yes"| D{"Did the session change .java?"}
+  D -->|"no"| E0
+  D -->|"yes"| FP{"Does the file fingerprint match<br/>the last successful build?"}
+  FP -->|"yes"| E0
+  FP -->|"no"| M["Modules of the changed files<br/>mvnw or mvn -q -o -pl a,b -am compile<br/>timeout 180 s"]
+  M --> T{"Timeout?"}
+  T -->|"yes"| SM1["systemMessage:<br/>could not check the build"]
+  T -->|"no"| OKQ{"Exit code 0?"}
+  OKQ -->|"yes"| SAVE["Remember the fingerprint,<br/>reset the block counter"] --> E0
+  OKQ -->|"no"| OWN{"Errors in files<br/>the session changed?"}
+  OWN -->|"no"| SM2["systemMessage to the user:<br/>offline cache, no Maven,<br/>or other files are broken"]
+  OWN -->|"yes"| CNT{"Already 2 blocks<br/>since the last successful build?"}
+  CNT -->|"yes"| SM3["systemMessage:<br/>stopping without a check"]
+  CNT -->|"no"| BL["block: up to 10 errors<br/>file:line message"]

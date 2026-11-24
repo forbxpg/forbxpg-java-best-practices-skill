@@ -1,0 +1,42 @@
+sequenceDiagram
+  autonumber
+  actor U as User
+  participant H as Harness
+  participant K as Hook: node java-hooks.mjs
+  participant M as Model
+
+  U->>H: opens a session in the project folder
+  H->>K: SessionStart, source = startup
+  K-->>H: stdout: project passport, plus the router in Claude and Codex
+  H->>M: system context + passport
+
+  U->>H: message
+  H->>K: UserPromptSubmit, prompt
+  K-->>H: additionalContext: anchor in GigaCode, otherwise empty
+  H->>M: message + anchor
+
+  M->>H: Write call for OrderService.java
+  H->>K: PreToolUse, tool_name and tool_input
+  alt new hard violation
+    K-->>H: exit 2, stderr: [forbxpg-java] J1 ...
+    H-->>M: tool not run, refusal text
+    M->>H: corrected Write
+    H->>K: PreToolUse
+  end
+  K-->>H: exit 0
+  H->>H: writes the file to disk
+  H->>K: PostToolUse
+  K-->>H: additionalContext: W remarks and role rules
+  H->>M: tool result + additionalContext
+
+  M->>H: ends the turn
+  H->>K: Stop
+  K->>K: mvn -q -o compile for the affected modules
+  alt compile errors in this session's files
+    K-->>H: decision = block, reason = list of errors
+    H->>M: reason as an instruction to continue
+    M->>H: fixes, then ends the turn again
+  else build passed
+    K-->>H: empty
+    H->>U: model's answer
+  end

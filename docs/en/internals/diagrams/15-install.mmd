@@ -1,0 +1,19 @@
+flowchart TB
+  A["node install.mjs --agent gigacode|claude --scope user|project"] --> SC{"--scope"}
+  SC -->|"user"| U{"--agent"}
+  U -->|"gigacode"| UG["gigacode extensions link repo<br/>answers Y to the Y/n question"]
+  U -->|"claude"| UC["claude plugin marketplace add repo<br/>claude plugin install forbxpg-java@forbxpg-java"]
+  UG --> UDONE["The repository folder is connected to all projects,<br/>update: git pull"]
+  UC --> UDONE
+  SC -->|"project"| UN{"--uninstall?"}
+  UN -->|"yes"| RM["From the receipt: remove the files,<br/>clean own hooks out of settings.json,<br/>remove the import line from GIGACODE.md,<br/>restore the original files byte for byte"]
+  UN -->|"no"| V["Check settings.json:<br/>strict JSON, otherwise refuse"]
+  V --> PL["Plan: skills/ and hooks/ into .gigacode/ or .claude/<br/>file sha256 against the receipt"]
+  PL --> CHG{"Was the file changed<br/>in the project?"}
+  CHG -->|"yes, without --force"| SKIP["keep it, name it in the output"]
+  CHG -->|"no or --force"| WR["write"]
+  SKIP --> DRY{"--dry-run?"}
+  WR --> DRY
+  DRY -->|"yes"| PRINT["print the plan, write nothing"]
+  DRY -->|"no"| DO["Write the files, remove those dropped by the new version,<br/>merge hooks into settings.json,<br/>GigaCode: @ import line for the router in GIGACODE.md"]
+  DO --> REC["install-receipt.json:<br/>version, files and sha256, original settings and GIGACODE.md"]

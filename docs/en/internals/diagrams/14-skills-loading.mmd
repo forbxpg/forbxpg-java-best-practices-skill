@@ -1,0 +1,15 @@
+sequenceDiagram
+  participant H as Harness
+  participant FS as skills/
+  participant M as Model
+
+  H->>FS: session start: frontmatter of every SKILL.md
+  FS-->>H: name and description of each skill
+  H->>M: list of skills in the system context, about 100 tokens per skill
+  Note over H,M: the router using-java-best-practices is in context in full:<br/>GigaCode through contextFileName or GIGACODE.md,<br/>Claude and Codex through SessionStart output
+  M->>H: task about an entity: load spring-data-jpa
+  H->>FS: SKILL.md body
+  FS-->>H: skill text, up to 150 lines
+  H->>M: skill body in context
+  M->>H: read references/entities.md via the link in the skill
+  H-->>M: reference file, up to 250 lines

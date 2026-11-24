@@ -6,7 +6,8 @@ enforce the rules even when the model forgets them.**
 Claude Code · GigaCode · Codex — Windows, Linux, macOS — Node ≥ 20, no other runtime.
 
 [Русская версия](README.ru.md) · [Installation](docs/en/installation.md) ·
-[How it works](docs/en/how-it-works.md) · [Configuration](docs/en/configuration.md)
+[How it works](docs/en/how-it-works.md) · [Configuration](docs/en/configuration.md) ·
+[Internals](docs/en/internals/README.md)
 
 ## Why
 
@@ -41,6 +42,8 @@ Liquibase, layered packages) and from an analysis of ten public Java skill colle
    hook compiles what changed, and the model fixes its own errors.
 4. **"Done" needs proof:** `java-verification` makes the model quote the build and test
    output.
+
+In detail, with a diagram of every hook: [forbxpg-java internals](docs/en/internals/README.md).
 
 ## Skills
 
