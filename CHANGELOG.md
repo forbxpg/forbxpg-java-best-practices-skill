@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+- A Codex patch that touches two Maven projects is checked against each project's own root,
+  so a committed gate file in the second project is still blocked (G2).
+- W1 reports `@Data` (and an unrestricted `@EqualsAndHashCode`) even when a safe
+  `@ToString(onlyExplicitlyIncluded = true)` is on the same line, and accepts that flag
+  when its arguments continue on the next line.
+- Project uninstall honours `--dry-run`, validates `settings.json` before deleting files,
+  and leaves a router import that was already in `GIGACODE.md`.
+- Hook ownership matches `forbxpg-java/hooks/java-hooks.mjs`, not the substring `forbxpg-java`.
+- Windows install and diagram rendering quote arguments, so a repository path with spaces
+  stays one argument.
+- The passport cache notices a module `pom.xml` change. A failed session-state write no
+  longer turns a block into a silent allow, and one broken marker no longer hides the others.
+- `java-verification` uses a per-run build log instead of a shared `build.log`.
+
 ## 0.3.0 — 2026-11-24
 
 - Adaptive anchor: the three rules after the passport are the rules the model broke in

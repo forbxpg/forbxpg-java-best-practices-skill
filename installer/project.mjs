@@ -101,6 +101,9 @@ export function installProject({ repoDir, projectDir, agent, dryRun = false, for
   const settings = parseSettings(settingsText ?? '', layout.settings);
   const files = sourceFiles(repoDir, layout);
 
+  // A broken settings file or hook entry must fail before the first project file is copied.
+  const mergedSettings = formatSettings(mergeHooks(settings, hooksBlock(repoDir, layout)));
+
   const createdRoot = previous?.createdRoot ?? !existsSync(join(projectDir, layout.root));
   const result = { written: [], skipped: [], removed: [] };
   const receiptFiles = {};
@@ -133,7 +136,7 @@ export function installProject({ repoDir, projectDir, agent, dryRun = false, for
     rmSync(join(projectDir, rel));
     pruneEmpty(dirname(join(projectDir, rel)), join(projectDir, layout.root));
   }
-  write(settingsPath, formatSettings(mergeHooks(settings, hooksBlock(repoDir, layout))));
+  write(settingsPath, mergedSettings);
 
   let contextBefore = null;
   if (layout.context) {
@@ -169,41 +172,65 @@ function pruneEmpty(dir, stop) {
   }
 }
 
+/** How settings.json should look after uninstall. Reads and validates before any file is deleted. */
+function settingsPlan(projectDir, layout, receipt) {
+  const path = join(projectDir, layout.settings);
+  const current = readIf(path);
+  if (current === null) return null;
+  const cleaned = removeHooks(parseSettings(current, layout.settings));
+  const before = receipt.settingsBefore;
+  const userKeys = JSON.stringify(withoutAgentKeys(cleaned));
+  if (before === null && userKeys === '{}') return { path, action: 'delete' };
+  if (before !== null && userKeys === JSON.stringify(withoutAgentKeys(removeHooks(parseSettings(before, layout.settings))))) {
+    return { path, action: 'write', text: before };
+  }
+  return { path, action: 'write', text: formatSettings(cleaned) };
+}
+
+/** Restores the context file. A router import that was already there is not removed. */
+function contextPlan(projectDir, layout, receipt) {
+  if (!layout.context) return null;
+  const path = join(projectDir, layout.context.file);
+  const context = readIf(path);
+  if (context === null) return null;
+  const line = layout.context.line;
+  const before = receipt.contextBefore;
+  const alreadyThere = before !== null && before.split(/\r?\n/).includes(line);
+  const without = alreadyThere ? context : context.split(/\r?\n/).filter((l) => l !== line).join('\n');
+  if (before === null && without.trim() === '') return { path, action: 'delete' };
+  if (before !== null && without.trim() === before.trim()) return { path, action: 'write', text: before };
+  if (without === context) return { path, action: 'keep' };
+  return { path, action: 'write', text: without };
+}
+
+function applyPlan(plan) {
+  if (!plan || plan.action === 'keep') return;
+  if (plan.action === 'delete') rmSync(plan.path);
+  else writeFileSync(plan.path, plan.text);
+}
+
 /** Removes exactly what the receipt lists and restores settings and the context file. */
-export function uninstallProject({ projectDir, agent }) {
+export function uninstallProject({ projectDir, agent, dryRun = false }) {
   const layout = layoutOf(agent);
   const receipt = readReceipt(projectDir, layout);
   if (!receipt) throw new Error(`no forbxpg-java ${agent} install found in ${projectDir}`);
   const result = { written: [], skipped: [], removed: [] };
   const root = join(projectDir, layout.root);
+  const settings = settingsPlan(projectDir, layout, receipt);
+  const context = contextPlan(projectDir, layout, receipt);
 
   for (const rel of Object.keys(receipt.files)) {
+    if (existsSync(join(projectDir, rel))) result.removed.push(rel);
+  }
+  if (dryRun) return result;
+
+  for (const rel of result.removed) {
     const path = join(projectDir, rel);
-    if (!existsSync(path)) continue;
     rmSync(path);
-    result.removed.push(rel);
     pruneEmpty(dirname(path), root);
   }
-
-  const settingsPath = join(projectDir, layout.settings);
-  const current = readIf(settingsPath);
-  if (current !== null) {
-    const cleaned = removeHooks(parseSettings(current, layout.settings));
-    const before = receipt.settingsBefore;
-    const userKeys = JSON.stringify(withoutAgentKeys(cleaned));
-    if (before === null && userKeys === '{}') rmSync(settingsPath);
-    else if (before !== null && userKeys === JSON.stringify(withoutAgentKeys(removeHooks(parseSettings(before, layout.settings))))) writeFileSync(settingsPath, before);
-    else writeFileSync(settingsPath, formatSettings(cleaned));
-  }
-
-  const contextPath = layout.context ? join(projectDir, layout.context.file) : null;
-  const context = contextPath ? readIf(contextPath) : null;
-  if (context !== null) {
-    const without = context.split(/\r?\n/).filter((l) => l !== layout.context.line).join('\n');
-    if (receipt.contextBefore === null && without.trim() === '') rmSync(contextPath);
-    else if (receipt.contextBefore !== null && without.trim() === receipt.contextBefore.trim()) writeFileSync(contextPath, receipt.contextBefore);
-    else writeFileSync(contextPath, without);
-  }
+  applyPlan(settings);
+  applyPlan(context);
 
   rmSync(join(projectDir, layout.receipt), { force: true });
   pruneEmpty(dirname(join(projectDir, layout.receipt)), root);
