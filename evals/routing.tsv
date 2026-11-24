@@ -25,3 +25,6 @@ are all tests passing now, can we say it is done	java-verification
 I fixed the flaky test, confirm the build is green	java-verification
 add ArchUnit rules so the build fails on field injection	java-quality-gates
 set up quality gates and enforcer for this maven project	java-quality-gates
+let's grill the order cancellation feature	java-design-decisions
+write the spec for the payments client integration	java-design-decisions
+what do we need to decide before implementing the export endpoint	java-design-decisions

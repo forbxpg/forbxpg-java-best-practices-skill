@@ -31,7 +31,7 @@ receipt. User installs call the agents' own CLIs through an injectable runner.
 
 ## 1. Design skill
 
-- [ ] 1.1 java-design-decisions skill — verify: node scripts/validate-skills.mjs && node scripts/check-tokens.mjs exit 0
+- [x] 1.1 java-design-decisions skill — verify: node scripts/validate-skills.mjs && node scripts/check-tokens.mjs exit 0
 
 Covers: — · Test: none: prose; structure, routing cases and budget are checked by scripts
 
