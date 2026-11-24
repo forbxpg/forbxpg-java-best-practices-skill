@@ -72,6 +72,21 @@ test('S-INST-5a: install then uninstall restores the project byte for byte', () 
   assert.ok(!existsSync(join(empty, '.gigacode')), 'the .gigacode folder it created is gone');
 });
 
+test('S-INST-5a: the "$version" key GigaCode adds to settings.json does not survive uninstall', () => {
+  const addVersion = (dir) => {
+    const path = join(dir, '.gigacode/settings.json');
+    writeFileSync(path, JSON.stringify({ $version: 4, ...JSON.parse(readFileSync(path, 'utf8')) }, null, 2));
+  };
+  for (const files of [{ 'pom.xml': BOOT4_POM }, { 'pom.xml': BOOT4_POM, '.gigacode/settings.json': FOREIGN_SETTINGS }]) {
+    const dir = tempProject(files);
+    const before = snapshot(dir);
+    installProject({ repoDir: REPO, projectDir: dir, agent: 'gigacode' });
+    addVersion(dir);
+    uninstallProject({ projectDir: dir, agent: 'gigacode' });
+    assert.deepEqual(snapshot(dir), before);
+  }
+});
+
 test('R-INST-7: the copied hook runs from the project and blocks a J1 write', () => {
   const dir = tempProject({ 'pom.xml': BOOT4_POM });
   installProject({ repoDir: REPO, projectDir: dir, agent: 'gigacode' });

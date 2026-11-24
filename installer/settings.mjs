@@ -17,6 +17,15 @@ export function parseSettings(text, path) {
 
 export const formatSettings = (settings) => `${JSON.stringify(settings, null, 2)}\n`;
 
+/** GigaCode writes "$version" into settings.json on its own; it is not the team's setting. */
+const AGENT_KEYS = ['$version'];
+
+export function withoutAgentKeys(settings) {
+  const copy = { ...settings };
+  for (const key of AGENT_KEYS) delete copy[key];
+  return copy;
+}
+
 /** Settings without our hook entries; empty groups, events and the hooks key are dropped. */
 export function removeHooks(settings) {
   const copy = structuredClone(settings);

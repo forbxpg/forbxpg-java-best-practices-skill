@@ -2,7 +2,7 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, rmSync, rmdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join, dirname, relative } from 'node:path';
-import { parseSettings, formatSettings, mergeHooks, removeHooks } from './settings.mjs';
+import { parseSettings, formatSettings, mergeHooks, removeHooks, withoutAgentKeys } from './settings.mjs';
 
 const sha256 = (text) => createHash('sha256').update(text).digest('hex');
 const posix = (p) => p.replace(/\\/g, '/');
@@ -190,8 +190,9 @@ export function uninstallProject({ projectDir, agent }) {
   if (current !== null) {
     const cleaned = removeHooks(parseSettings(current, layout.settings));
     const before = receipt.settingsBefore;
-    if (before === null && Object.keys(cleaned).length === 0) rmSync(settingsPath);
-    else if (before !== null && JSON.stringify(cleaned) === JSON.stringify(removeHooks(parseSettings(before, layout.settings)))) writeFileSync(settingsPath, before);
+    const userKeys = JSON.stringify(withoutAgentKeys(cleaned));
+    if (before === null && userKeys === '{}') rmSync(settingsPath);
+    else if (before !== null && userKeys === JSON.stringify(withoutAgentKeys(removeHooks(parseSettings(before, layout.settings))))) writeFileSync(settingsPath, before);
     else writeFileSync(settingsPath, formatSettings(cleaned));
   }
 
