@@ -24,7 +24,7 @@ gigacode extensions link /path/to/forbxpg-java-best-practices-skill
 - Use `link`, not `install`: `install` sees `.claude-plugin/` and installs the folder as a
   Claude plugin, losing the context file and the hooks.
 - The manifest `gigacode-extension.json` loads the router through `contextFileName`, the
-  nine skills from `skills/`, and the hooks. Hooks in the extension manifest are not in
+  ten skills from `skills/`, and the hooks. Hooks in the extension manifest are not in
   GigaCode's documentation but work (verified on GigaCode 26.11.141).
 - Hooks are on by default; `"disableAllHooks": true` in `~/.gigacode/settings.json`
   turns them off.

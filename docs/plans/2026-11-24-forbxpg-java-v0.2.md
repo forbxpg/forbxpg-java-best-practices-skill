@@ -150,7 +150,7 @@ tests/manifests.test.mjs, skills/java-verification/SKILL.md
 
 ## 4. Verify and publish
 
-- [ ] 4.1 Live Claude Code check — verify: blocks and remarks observed in a real session
+- [x] 4.1 Live Claude Code check — verify: blocks and remarks observed in a real session
 
 Covers: — · Test: none: manual end-to-end check, recorded in the ledger
 

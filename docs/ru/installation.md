@@ -23,7 +23,7 @@ gigacode extensions link /путь/к/forbxpg-java-best-practices-skill
   не ставит: `echo Y| gigacode extensions link <путь>`.
 - Именно `link`, не `install`: `install` видит `.claude-plugin/` и ставит папку как
   плагин Claude, теряя контекст-файл и хуки.
-- Манифест `gigacode-extension.json` загружает роутер через `contextFileName`, девять
+- Манифест `gigacode-extension.json` загружает роутер через `contextFileName`, десять
   скиллов из `skills/` и хуки. Хуков в манифесте расширения нет в документации GigaCode,
   но они работают (проверено на GigaCode 26.11.141).
 - Хуки включены по умолчанию; `"disableAllHooks": true` в `~/.gigacode/settings.json`

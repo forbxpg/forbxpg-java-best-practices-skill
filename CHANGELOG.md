@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.2.0 — 2026-11-24
+
+- New skill `java-design-decisions`: the API, data, integration, transaction, testing and
+  rollout decisions to settle before code, with the project's default answers. Ten skills.
+- Installer `install.mjs`: `--agent gigacode|claude --scope user|project`, `--update` (keeps
+  files the team edited), `--force`, `--uninstall` (removes exactly what the receipt lists and
+  restores `settings.json` and `GIGACODE.md`), `--dry-run`.
+- Hooks find the Maven project above the written file or the session folder, and in the only
+  child folder with a `pom.xml`: sessions opened in `src/`, in a module or at a git root above
+  `backend/` are checked too.
+- Passport finds the Boot version behind a corporate parent or an aggregator root.
+- Version-aware advice: `@MockBean` before Boot 3.4, Flyway wording in Flyway projects; the
+  context warning offers a plan-file handoff without grillspec.
+- Fewer false positives: W8 skips Spring Data `*RepositoryImpl` fragments, W1 allows
+  `onlyExplicitlyIncluded = true`.
+- Race-free session state (marker files), `pre-*` snapshots removed after use; post-write
+  hooks only on file tools; `java-verification` writes its build log to the temp folder.
+- Uninstall ignores the `"$version"` key GigaCode adds to `settings.json`.
+- Docs: installer guides, a "how the skills work" overview, and `docs/ru/internals` — hooks,
+  events, rules, state, skills, installer and harness differences with diagrams.
+
 ## 0.1.0 — 2026-11-24
 
 First release.
