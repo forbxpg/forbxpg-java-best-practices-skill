@@ -53,7 +53,7 @@ Files: modify hooks/lib/anchor-text.mjs, hooks/lib/session.mjs, scripts/check-to
 
 ## 2. Docs
 
-- [ ] 2.1 Russian internals updated — verify: link check passes
+- [x] 2.1 Russian internals updated — verify: link check passes
 
 Covers: R-DOCS-2 · Test: none: prose
 
