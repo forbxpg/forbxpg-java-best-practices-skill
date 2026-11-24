@@ -57,6 +57,20 @@ export const ROLE_RULES = {
   ].join('\n'),
 };
 
+/** One line per role for the anchor (≤ 40 chars); equal to a rule's short text when they say the same. */
+export const ROLE_SHORT = {
+  controller: 'controllers: one service call, no logic',
+  service: '@Transactional on public service methods',
+  repository: 'join fetch or @EntityGraph against N+1',
+  entity: 'no @Data on @Entity',
+  dto: 'DTOs are records named *Dto',
+  mapper: 'MapStruct: unmappedTargetPolicy = ERROR',
+  config: '@ConfigurationProperties, not @Value',
+  'exception-handler': 'errors as ProblemDetail in one advice',
+  test: 'JUnit 5 + AssertJ; never @Disabled',
+  liquibase: 'new changeset; never edit one on main',
+};
+
 /** The rules of a role, worded for the project's Boot version and migration tool. */
 export function roleRules(role, passport = {}) {
   const mock = mockBeanName(passport);
