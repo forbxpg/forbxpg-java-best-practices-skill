@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0 — 2026-11-24
+
+- Adaptive anchor: the three rules after the passport are the rules the model broke in
+  this session (newest first, three latest distinct ones), then the rules of the file roles
+  it touched, then the defaults. Same default as before: on in GigaCode, off in Claude Code
+  and Codex.
+- Every rule and role has a short text (≤ 40 characters) for the anchor.
+- The recovery block after compaction lists up to five rules broken in this session with
+  their fix; its budget is 500 tokens.
+- Docs: `docs/en/internals`, the full internals guide in English with English diagrams.
+
 ## 0.2.0 — 2026-11-24
 
 - New skill `java-design-decisions`: the API, data, integration, transaction, testing and

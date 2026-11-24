@@ -68,6 +68,6 @@ README.md, docs/en/how-it-works.md, docs/en/configuration.md
 
 ## 3. Release
 
-- [ ] 3.1 0.3.0 — verify: CI green
+- [x] 3.1 0.3.0 — verify: CI green
 
 Files: manifests, CHANGELOG.md. Commit `chore(release): 0.3.0`, push `feat/v0.3`, PR.
