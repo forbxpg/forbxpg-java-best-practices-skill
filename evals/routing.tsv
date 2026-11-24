@@ -1,0 +1,27 @@
+# prompt<TAB>expected skill. Every skill needs at least two cases (R-SKILL-1).
+what rules apply to java code in this repository	using-java-best-practices
+which skill should I use for this spring boot task	using-java-best-practices
+where should I put a new class for the payment client	java-conventions
+create a new maven module for the reporting feature	java-conventions
+which lombok annotations should this entity have	java-conventions
+how should I name the DTO for the order response	java-conventions
+should this result type be a sealed interface with records	java-language
+is it safe to share this HashMap between threads with virtual threads	java-language
+how do I handle this checked IOException properly in plain java	java-language
+add a REST endpoint to cancel an order	spring-boot-service
+my @Transactional method does not roll back when called from the same class	spring-boot-service
+call the payment service over HTTP with a timeout	spring-boot-service
+return validation errors as problem details	spring-boot-service
+my repository fires 200 queries for one page	spring-data-jpa
+LazyInitializationException when mapping the order to a DTO	spring-data-jpa
+add a status column to the orders table	spring-data-jpa
+write tests for the order cancellation rules	java-testing
+this controller test is flaky and slow, fix it	java-testing
+how do I test this repository query	java-testing
+review this pull request before I merge	java-code-review
+check this class for thread safety and other bugs	java-code-review
+is this service code ok, can you review it	java-code-review
+are all tests passing now, can we say it is done	java-verification
+I fixed the flaky test, confirm the build is green	java-verification
+add ArchUnit rules so the build fails on field injection	java-quality-gates
+set up quality gates and enforcer for this maven project	java-quality-gates
