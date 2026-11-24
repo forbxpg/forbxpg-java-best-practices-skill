@@ -81,6 +81,37 @@ test('a successful compile is not repeated for the same change set; a new change
   assert.equal(fake.calls.length, 2);
 });
 
+test('Stop compiles every Maven root in the change set before marking it verified', async () => {
+  const root = tempProject({
+    'a/pom.xml': BOOT4_POM,
+    'a/src/main/java/A.java': 'class A {}',
+    'b/pom.xml': BOOT4_POM,
+    'b/src/main/java/B.java': 'class B {}',
+  });
+  const ctx = {
+    projectDir: join(root, 'a'),
+    stateDir: sessionDir(join(root, 'a'), uniqueSession()),
+    platform: process.platform,
+    config: { stopCompile: true, contextWarnAt: 0.7 },
+  };
+  addChangedFile(ctx.stateDir, join(root, 'a/src/main/java/A.java'));
+  addChangedFile(ctx.stateDir, join(root, 'b/src/main/java/B.java'));
+  const calls = [];
+  const run = async (command) => {
+    calls.push(command);
+    if (command.cwd === join(root, 'b')) {
+      return { ok: false, timedOut: false, output: `[ERROR] ${join(root, 'b/src/main/java/B.java')}:[2,1] cannot find symbol` };
+    }
+    return { ok: true, timedOut: false, output: '' };
+  };
+  const out = parse(await handleStop({}, ctx, run));
+  assert.equal(calls.length, 2);
+  assert.equal(out.decision, 'block');
+  assert.match(out.reason, /B\.java:2/);
+  await handleStop({}, ctx, run);
+  assert.equal(calls.length, 4, 'a failed second project is not recorded as a successful compile');
+});
+
 test('stopCompile: false → no compile; offline failures → systemMessage, no block', async () => {
   const off = setup({ config: { stopCompile: false } });
   const fake = ok();

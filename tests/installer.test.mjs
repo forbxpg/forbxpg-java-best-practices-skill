@@ -122,6 +122,18 @@ test('uninstall dry-run deletes nothing', () => {
   assert.deepEqual(snapshot(dir), before);
 });
 
+test('CLI --dry-run uninstall does not delete files', () => {
+  const dir = tempProject({ 'pom.xml': BOOT4_POM });
+  installProject({ repoDir: REPO, projectDir: dir, agent: 'gigacode' });
+  const before = snapshot(dir);
+  const r = spawnSync(process.execPath, [
+    join(REPO, 'install.mjs'), '--agent', 'gigacode', '--scope', 'project', '--project', dir, '--uninstall', '--dry-run',
+  ], { encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /Would uninstall/);
+  assert.deepEqual(snapshot(dir), before);
+});
+
 test('uninstall refuses broken settings before deleting hook files', () => {
   const dir = tempProject({ 'pom.xml': BOOT4_POM });
   installProject({ repoDir: REPO, projectDir: dir, agent: 'gigacode' });
@@ -246,6 +258,16 @@ test('Windows command line keeps a repository path with spaces as one argument',
     windowsCommandLine('gigacode', ['extensions', 'link', 'C:\\Users\\Jane Doe\\forbxpg-java']),
     'gigacode extensions link "C:\\Users\\Jane Doe\\forbxpg-java"',
   );
+  const calls = [];
+  const spawn = (file, args, opts) => {
+    calls.push({ file, args, verbatim: opts.windowsVerbatimArguments });
+    return { status: 0, stdout: '', stderr: '' };
+  };
+  const quoted = runCommand('gigacode', ['extensions', 'link', 'C:\\Users\\Jane Doe\\forbxpg-java'], { platform: 'win32', spawn });
+  assert.equal(quoted.status, 0);
+  assert.equal(calls[0].file, process.env.ComSpec || 'cmd.exe');
+  assert.deepEqual(calls[0].args, ['/d', '/s', '/c', 'gigacode extensions link "C:\\Users\\Jane Doe\\forbxpg-java"']);
+  assert.equal(calls[0].verbatim, true);
   const r = runCommand(process.execPath, ['-e', 'process.stdout.write(process.argv[1])', 'Jane Doe']);
   assert.equal(r.status, 0);
   assert.equal(r.output, 'Jane Doe');

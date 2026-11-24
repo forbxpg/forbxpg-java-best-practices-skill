@@ -14,19 +14,25 @@ export function windowsCommandLine(cmd, args) {
   return [cmd, ...args].map(quoteForCmd).join(' ');
 }
 
+/** Spawn arguments for one command. `platform` is injectable so the Windows branch can run in tests. */
+export function commandSpec(cmd, args, platform = process.platform) {
+  if (platform === 'win32') {
+    return {
+      file: process.env.ComSpec || 'cmd.exe',
+      args: ['/d', '/s', '/c', windowsCommandLine(cmd, args)],
+      windowsVerbatimArguments: true,
+    };
+  }
+  return { file: cmd, args, windowsVerbatimArguments: false };
+}
+
 /**
  * Runs a command. On Windows, .cmd shims need cmd.exe; arguments are quoted so a
  * repository path with spaces stays one argument. POSIX passes the array through.
  */
-export function runCommand(cmd, args, { input } = {}) {
-  const spec = process.platform === 'win32'
-    ? {
-        file: process.env.ComSpec || 'cmd.exe',
-        args: ['/d', '/s', '/c', windowsCommandLine(cmd, args)],
-        windowsVerbatimArguments: true,
-      }
-    : { file: cmd, args, windowsVerbatimArguments: false };
-  const r = spawnSync(spec.file, spec.args, {
+export function runCommand(cmd, args, { input, platform = process.platform, spawn = spawnSync } = {}) {
+  const spec = commandSpec(cmd, args, platform);
+  const r = spawn(spec.file, spec.args, {
     input,
     encoding: 'utf8',
     windowsHide: true,

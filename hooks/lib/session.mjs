@@ -20,8 +20,38 @@ function routerBody() {
   return readFileSync(router, 'utf8').replace(/^---[\s\S]*?\n---\s*\n/, '').trim();
 }
 
+/** 0 means no pending recovery. A boolean true left by 0.3.0 counts as generation 1. */
+export function compactedGeneration(value) {
+  if (value === true) return 1;
+  const gen = Number(value);
+  return Number.isInteger(gen) && gen > 0 ? gen : 0;
+}
+
+/** Records one compaction. A later event gets a newer generation, so it is not cleared with the previous one. */
+export function noteCompaction(stateDir) {
+  const next = compactedGeneration(readState(stateDir, 'compacted', 0)) + 1;
+  writeState(stateDir, 'compacted', next);
+  return next;
+}
+
+/** The generation waiting for recovery, or null. finish() clears it only when nothing newer arrived. */
+export function claimRecovery(stateDir) {
+  const seen = compactedGeneration(readState(stateDir, 'compacted', 0));
+  if (!seen) return null;
+  return {
+    seen,
+    finish() {
+      try {
+        if (compactedGeneration(readState(stateDir, 'compacted', 0)) === seen) writeState(stateDir, 'compacted', 0);
+      } catch (err) {
+        logError(stateDir, err);
+      }
+    },
+  };
+}
+
 export function handleSessionStart(input, ctx) {
-  if (input.source === 'compact') writeState(ctx.stateDir, 'compacted', true);
+  if (input.source === 'compact') noteCompaction(ctx.stateDir);
   const line = `[forbxpg-java] ${passportLine(readPassport(ctx.projectDir))}`;
   // GigaCode loads the router through contextFileName; Claude Code and Codex get it here.
   const router = ctx.harness === 'gigacode' ? '' : routerBody();
@@ -29,7 +59,7 @@ export function handleSessionStart(input, ctx) {
 }
 
 export function handlePostCompact(input, ctx) {
-  writeState(ctx.stateDir, 'compacted', true);
+  noteCompaction(ctx.stateDir);
   return {};
 }
 
@@ -42,13 +72,10 @@ export function handleUserPromptSubmit(input, ctx) {
   const passport = readPassport(ctx.projectDir);
   const disabled = ctx.config.disable ?? [];
   const violated = recentViolations(ctx.stateDir).filter((id) => !disabled.includes(id));
-  if (readState(ctx.stateDir, 'compacted', false)) {
+  const recovery = claimRecovery(ctx.stateDir);
+  if (recovery) {
     const text = recoveryText(passport, violated);
-    try {
-      writeState(ctx.stateDir, 'compacted', false);
-    } catch (err) {
-      logError(ctx.stateDir, err);
-    }
+    recovery.finish();
     return promptContext(text);
   }
   const anchorOn = ctx.config.anchor ?? ctx.harness === 'gigacode';

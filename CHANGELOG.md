@@ -15,6 +15,10 @@
 - The passport cache notices a module `pom.xml` change. A failed session-state write no
   longer turns a block into a silent allow, and one broken marker no longer hides the others.
 - `java-verification` uses a per-run build log instead of a shared `build.log`.
+- Stop compiles every Maven project a patch changed. A successful compile of the first
+  project no longer marks files in a second project as verified.
+- A compaction that arrives while recovery is being returned keeps its own generation,
+  so the next prompt still gets the recovery block.
 
 ## 0.3.0 — 2026-11-24
 

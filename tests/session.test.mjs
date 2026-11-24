@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { main } from '../hooks/java-hooks.mjs';
+import { claimRecovery, noteCompaction } from '../hooks/lib/session.mjs';
+import { sessionDir } from '../hooks/lib/state.mjs';
 import { anchorText, recoveryText } from '../hooks/lib/anchor-text.mjs';
 import { tempProject, uniqueSession, BOOT4_POM } from './helpers.mjs';
 
@@ -41,6 +43,19 @@ test('R-ANCHOR-2: after PostCompact the next prompt gets the recovery block once
   assert.equal(compact.stdout, '');
   assert.match(context(await run('UserPromptSubmit', 'gigacode', dir, session, { prompt: 'a' })), /Re-read your plan and grillspec notes/);
   assert.doesNotMatch(context(await run('UserPromptSubmit', 'gigacode', dir, session, { prompt: 'b' })), /Re-read/);
+});
+
+test('a compaction that arrives during recovery stays pending', () => {
+  const dir = tempProject({ 'pom.xml': BOOT4_POM });
+  const state = sessionDir(dir, uniqueSession());
+  noteCompaction(state);
+  const claim = claimRecovery(state);
+  noteCompaction(state);
+  claim.finish();
+  const next = claimRecovery(state);
+  assert.ok(next, 'the newer compaction is still waiting');
+  next.finish();
+  assert.equal(claimRecovery(state), null);
 });
 
 test('R-ANCHOR-3: Claude Code also gets the recovery block after SessionStart with source compact', async () => {
