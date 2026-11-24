@@ -24,6 +24,24 @@ attention span drops them. forbxpg-java puts the rule next to the action:
 The rules come from the team's Maven / Spring Boot 4 projects (Lombok, MapStruct,
 Liquibase, layered packages) and from an analysis of ten public Java skill collections.
 
+## How the skills work
+
+![How the skills work](docs/en/internals/img/00-skills-at-a-glance.png)
+
+1. **Always in context:** the router `using-java-best-practices` (13 rules and a
+   "which skill when" table), the project passport the hook reads from `pom.xml`, and the
+   skill catalog. Every other skill costs only its name and description, about 100
+   tokens each.
+2. **A skill loads for the task.** The router names the skill for the stage of work:
+   design, a new class, code, tests, review or gates. The model loads its `SKILL.md` and
+   reads the long `references/` only when a link points there, so the context holds only
+   what the task needs.
+3. **Hooks check the result.** Every file write passes a hook: a new hard violation is
+   refused with a ready fix, a soft one comes back as a remark. At the end of the turn the
+   hook compiles what changed, and the model fixes its own errors.
+4. **"Done" needs proof:** `java-verification` makes the model quote the build and test
+   output.
+
 ## Skills
 
 | Skill | For |
