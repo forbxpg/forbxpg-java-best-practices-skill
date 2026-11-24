@@ -1,5 +1,7 @@
 # Как это работает
 
+Коротко. Полное описание со схемами каждого хука: [forbxpg-java изнутри](internals/README.md).
+
 Одна точка входа `hooks/java-hooks.mjs <Event> --harness claude|gigacode|codex` читает вход
 хука из stdin и передаёт его обработчику в `hooks/lib/`. Вне Maven-проекта (нет
 `pom.xml`) любой хук молча выходит с кодом 0. Внутренняя ошибка — тоже код 0 (fail open) и
