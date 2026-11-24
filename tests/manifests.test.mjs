@@ -59,3 +59,12 @@ test('Codex plugin: skills folder and hooks-codex.json', () => {
   assert.equal(m.hooks, './hooks/hooks-codex.json');
   checkCommands(json('hooks/hooks-codex.json').hooks, '${PLUGIN_ROOT}', 'codex');
 });
+
+test('M7: PostToolUse hooks are registered for file tools only, never for shell tools', () => {
+  const shell = /run_shell_command|Bash|shell|exec_command/;
+  for (const file of ['gigacode-extension.json', 'hooks/hooks.json', 'hooks/hooks-codex.json']) {
+    const post = commands(json(file).hooks).filter((c) => c.event === 'PostToolUse');
+    assert.ok(post.length > 0, `${file} has PostToolUse`);
+    for (const c of post) assert.doesNotMatch(c.matcher, shell, `${file}: ${c.matcher}`);
+  }
+});

@@ -137,7 +137,7 @@ Files: modify hooks/lib/state.mjs, hooks/lib/post.mjs, hooks/lib/stop.mjs; tests
    20 files leave 20 changed files. Run. Expected: FAIL.
 2. Fix with marker files. Commit `fix(hooks): race-free session state and snapshot cleanup`.
 
-- [ ] 3.5 M6, M7 — verify: node --test passes and validate-skills exits 0
+- [x] 3.5 M6, M7 — verify: node --test passes and validate-skills exits 0
 
 Covers: — · Test: reproduce-first
 

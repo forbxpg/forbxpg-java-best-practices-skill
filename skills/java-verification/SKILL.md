@@ -23,18 +23,18 @@ Use the wrapper when the project has one; on Windows `mvnw.cmd`.
 ## Getting the evidence
 
 ```bash
-./mvnw -B verify > build.log 2>&1; echo "exit=$?"
+./mvnw -B verify > "${TMPDIR:-/tmp}/build.log" 2>&1; echo "exit=$?"
 ```
 
-Then read, from `build.log`:
+Keep the log outside the project (it must not end up in a commit). Then read, from it:
 
 - `Tests run: N, Failures: F, Errors: E, Skipped: S` — one summary for Surefire, one for
   Failsafe when `*IT` tests exist;
 - `BUILD SUCCESS` / `BUILD FAILURE`;
 - the first `[ERROR]` lines when it failed.
 
-On Windows (`cmd`), the same: `mvnw.cmd -B verify > build.log 2>&1` then
-`echo exit=%ERRORLEVEL%`, and read the log with `findstr /C:"Tests run" /C:"BUILD" build.log`.
+On Windows (`cmd`): `mvnw.cmd -B verify > "%TEMP%\build.log" 2>&1`, then
+`echo exit=%ERRORLEVEL%`, and read it with `findstr /C:"Tests run" /C:"BUILD" "%TEMP%\build.log"`.
 
 ## The Verification block
 

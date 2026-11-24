@@ -48,7 +48,7 @@
             "timeout": 10000
           }
         ],
-        "matcher": "^(write_file|edit|replace|run_shell_command)$"
+        "matcher": "^(write_file|edit|replace)$"
       }
     ],
     "PostCompact": [
