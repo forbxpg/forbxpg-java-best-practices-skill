@@ -103,7 +103,7 @@ Files: modify hooks/lib/rules.mjs, tests/rules.test.mjs
    `@Entity @ToString(onlyExplicitlyIncluded = true) class O {}`. Run. Expected: FAIL.
 2. Fix. Commit `fix(hooks): W8 skips Spring Data fragments, W1 allows explicit-include Lombok`.
 
-- [ ] 3.2 Passport M3 — verify: node --test passes
+- [x] 3.2 Passport M3 — verify: node --test passes
 
 Covers: — · Test: reproduce-first
 
