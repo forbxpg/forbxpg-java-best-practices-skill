@@ -1,5 +1,6 @@
 // File roles and the short rules a model gets the first time it writes a file of that role.
 import { stripCommentsAndStrings } from './javatext.mjs';
+import { mockBeanName, migrationName } from './passport.mjs';
 
 export const ROLE_RULES = {
   controller: [
@@ -22,7 +23,7 @@ export const ROLE_RULES = {
   entity: [
     '- @Getter @Setter @NoArgsConstructor(access = PROTECTED); never @Data, @EqualsAndHashCode, @ToString.',
     '- equals/hashCode on the id; @ManyToOne/@OneToOne(fetch = LAZY); @Enumerated(EnumType.STRING).',
-    '- Schema changes go in a new Liquibase changeset, never ddl-auto.',
+    '- Schema changes go in a new {MIGRATION}, never ddl-auto.',
   ].join('\n'),
   dto: [
     '- Prefer a record: public record OrderDto(Long id, String number) {}.',
@@ -46,7 +47,7 @@ export const ROLE_RULES = {
   ].join('\n'),
   test: [
     '- JUnit 5 + AssertJ; name tests after behaviour; positive and negative cases.',
-    '- Slices: @WebMvcTest, @DataJpaTest (H2); @MockitoBean, not @MockBean.',
+    '- Slices: @WebMvcTest, @DataJpaTest (H2); {MOCK_BEAN}.',
     '- Take cases from the contract, not from the implementation; never @Disabled a failing test.',
   ].join('\n'),
   liquibase: [
@@ -55,6 +56,14 @@ export const ROLE_RULES = {
     '- Name constraints and indexes explicitly; index foreign keys.',
   ].join('\n'),
 };
+
+/** The rules of a role, worded for the project's Boot version and migration tool. */
+export function roleRules(role, passport = {}) {
+  const mock = mockBeanName(passport);
+  return (ROLE_RULES[role] ?? '')
+    .replace('{MIGRATION}', migrationName(passport))
+    .replace('{MOCK_BEAN}', mock === '@MockitoBean' ? '@MockitoBean, not @MockBean' : '@MockBean (Boot < 3.4 has no @MockitoBean)');
+}
 
 const ANNOTATION_ROLES = [
   [/@(RestControllerAdvice|ControllerAdvice)\b/, 'exception-handler'],

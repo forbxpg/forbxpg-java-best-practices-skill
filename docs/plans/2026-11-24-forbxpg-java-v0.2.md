@@ -31,7 +31,7 @@ receipt. User installs call the agents' own CLIs through an injectable runner.
 
 ## 1. Design skill
 
-- [ ] 1.1 java-design-decisions skill — verify: node scripts/validate-skills.mjs && node scripts/check-tokens.mjs exit 0
+- [x] 1.1 java-design-decisions skill — verify: node scripts/validate-skills.mjs && node scripts/check-tokens.mjs exit 0
 
 Covers: — · Test: none: prose; structure, routing cases and budget are checked by scripts
 
@@ -44,7 +44,7 @@ skills/using-java-best-practices/SKILL.md, evals/routing.tsv
 
 ## 2. Installer
 
-- [ ] 2.1 Project install for GigaCode — verify: node --test tests/installer.test.mjs passes
+- [x] 2.1 Project install for GigaCode — verify: node --test tests/installer.test.mjs passes
 
 Covers: S-INST-4a, S-INST-5a · Test: scenario-first
 
@@ -63,7 +63,7 @@ Interfaces:
    unchanged; receipt paths use `/`. Run. Expected: FAIL.
 2. Implement. Commit `feat(installer): project install for GigaCode`.
 
-- [ ] 2.2 Project install for Claude Code, update and force — verify: node --test tests/installer.test.mjs passes
+- [x] 2.2 Project install for Claude Code, update and force — verify: node --test tests/installer.test.mjs passes
 
 Covers: S-INST-6a · Test: scenario-first
 
@@ -75,7 +75,7 @@ Files: modify installer/project.mjs, tests/installer.test.mjs
    new ones. Run. Expected: FAIL.
 2. Implement. Commit `feat(installer): project install for Claude Code, update and force`.
 
-- [ ] 2.3 User scope through the agents' CLIs — verify: node --test tests/installer.test.mjs passes
+- [x] 2.3 User scope through the agents' CLIs — verify: node --test tests/installer.test.mjs passes
 
 Covers: — · Test: scenario-first
 
@@ -93,7 +93,7 @@ Interfaces:
 
 ## 3. Review minors
 
-- [ ] 3.1 Rules M1, M2 — verify: node --test passes
+- [x] 3.1 Rules M1, M2 — verify: node --test passes
 
 Covers: — · Test: reproduce-first
 
@@ -103,7 +103,7 @@ Files: modify hooks/lib/rules.mjs, tests/rules.test.mjs
    `@Entity @ToString(onlyExplicitlyIncluded = true) class O {}`. Run. Expected: FAIL.
 2. Fix. Commit `fix(hooks): W8 skips Spring Data fragments, W1 allows explicit-include Lombok`.
 
-- [ ] 3.2 Passport M3 — verify: node --test passes
+- [x] 3.2 Passport M3 — verify: node --test passes
 
 Covers: — · Test: reproduce-first
 
@@ -114,7 +114,7 @@ Files: modify hooks/lib/passport.mjs, tests/passport.test.mjs
    Run. Expected: FAIL.
 2. Fix. Commit `fix(hooks): find the Boot version behind a corporate parent`.
 
-- [ ] 3.3 Version-aware texts M4, M8 — verify: node --test passes
+- [x] 3.3 Version-aware texts M4, M8 — verify: node --test passes
 
 Covers: — · Test: reproduce-first
 
@@ -127,7 +127,7 @@ hooks/lib/stop.mjs, docs/{en,ru}/how-it-works.md; tests
 2. Fix (role rules become a function of the passport). Commit
    `fix(hooks): version-aware advice and a handoff fallback without grillspec`.
 
-- [ ] 3.4 State M5 — verify: node --test passes
+- [x] 3.4 State M5 — verify: node --test passes
 
 Covers: — · Test: reproduce-first
 
@@ -137,7 +137,7 @@ Files: modify hooks/lib/state.mjs, hooks/lib/post.mjs, hooks/lib/stop.mjs; tests
    20 files leave 20 changed files. Run. Expected: FAIL.
 2. Fix with marker files. Commit `fix(hooks): race-free session state and snapshot cleanup`.
 
-- [ ] 3.5 M6, M7 — verify: node --test passes and validate-skills exits 0
+- [x] 3.5 M6, M7 — verify: node --test passes and validate-skills exits 0
 
 Covers: — · Test: reproduce-first
 
@@ -150,7 +150,7 @@ tests/manifests.test.mjs, skills/java-verification/SKILL.md
 
 ## 4. Verify and publish
 
-- [ ] 4.1 Live Claude Code check — verify: blocks and remarks observed in a real session
+- [x] 4.1 Live Claude Code check — verify: blocks and remarks observed in a real session
 
 Covers: — · Test: none: manual end-to-end check, recorded in the ledger
 
@@ -161,7 +161,7 @@ Files: none (CHANGELOG.md and version bump to 0.2.0 in the final commit)
 2. Same after `node install.mjs --agent claude --scope project`.
 3. Bump versions to 0.2.0, CHANGELOG; commit `chore(release): 0.2.0`.
 
-- [ ] 4.2 GigaCode project-install probe prompt — verify: prompt file exists and is shown to the user
+- [x] 4.2 GigaCode project-install probe prompt — verify: prompt file exists and is shown to the user
 
 Covers: — · Test: none: a prompt for the work machine
 

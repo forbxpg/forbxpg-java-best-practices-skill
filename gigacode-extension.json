@@ -1,6 +1,6 @@
 {
   "name": "forbxpg-java",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "contextFileName": [
     "skills/using-java-best-practices/SKILL.md"
   ],
@@ -48,7 +48,7 @@
             "timeout": 10000
           }
         ],
-        "matcher": "^(write_file|edit|replace|run_shell_command)$"
+        "matcher": "^(write_file|edit|replace)$"
       }
     ],
     "PostCompact": [

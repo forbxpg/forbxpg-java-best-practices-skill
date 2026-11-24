@@ -1,0 +1,15 @@
+sequenceDiagram
+  participant H as Харнесс
+  participant FS as skills/
+  participant M as Модель
+
+  H->>FS: старт сессии: frontmatter всех SKILL.md
+  FS-->>H: name и description каждого скилла
+  H->>M: список скиллов в системном контексте, примерно 100 токенов на скилл
+  Note over H,M: роутер using-java-best-practices в контексте целиком:<br/>GigaCode через contextFileName или GIGACODE.md,<br/>Claude и Codex через вывод SessionStart
+  M->>H: задача про сущность: загрузить spring-data-jpa
+  H->>FS: тело SKILL.md
+  FS-->>H: текст скилла, до 150 строк
+  H->>M: тело скилла в контексте
+  M->>H: прочитать references/entities.md по ссылке из скилла
+  H-->>M: справочник, до 250 строк

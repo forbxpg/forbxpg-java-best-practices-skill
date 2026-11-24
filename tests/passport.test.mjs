@@ -68,3 +68,24 @@ test('passport is cached until pom.xml mtime changes', () => {
   utimesSync(pom, atime, new Date(mtime.getTime() + 5000));
   assert.equal(readPassport(dir).java, '21', 'new mtime → re-read');
 });
+
+const CORP_PARENT = '<parent><groupId>ru.corp</groupId><artifactId>corp-parent</artifactId><version>7</version></parent>';
+
+test('M3: Boot version from a spring-boot.version property behind a corporate parent', () => {
+  const dir = tempProject({ 'pom.xml': `<project>${CORP_PARENT}<properties><spring-boot.version>3.5.4</spring-boot.version></properties></project>` });
+  assert.equal(readPassport(dir).boot, '3.5.4');
+});
+
+test('M3: Boot version from a BOM in a module of an aggregator root', () => {
+  const dir = tempProject({
+    'pom.xml': `<project>${CORP_PARENT}<packaging>pom</packaging><modules><module>app</module></modules></project>`,
+    'app/pom.xml': '<project><dependencyManagement><dependencies><dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-dependencies</artifactId><version>4.0.7</version><type>pom</type><scope>import</scope></dependency></dependencies></dependencyManagement></project>',
+  });
+  assert.equal(readPassport(dir).boot, '4.0.7');
+  assert.equal(bootMajor(readPassport(dir)), 4);
+});
+
+test('M3: Boot version from spring-boot-maven-plugin when nothing else names it', () => {
+  const dir = tempProject({ 'pom.xml': `<project>${CORP_PARENT}<build><plugins><plugin><groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId><version>4.1.1</version></plugin></plugins></build></project>` });
+  assert.equal(readPassport(dir).boot, '4.1.1');
+});

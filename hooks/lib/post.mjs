@@ -2,26 +2,33 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { normalizeTool } from './io.mjs';
-import { readState, writeState } from './state.mjs';
+import { readState, removeState, addChangedFile, claimOnce } from './state.mjs';
 import { readPassport } from './passport.mjs';
 import { findViolations, newViolations, formatViolation } from './rules.mjs';
 import { snapshotKey } from './pre.mjs';
-import { detectRole, ROLE_RULES } from './roles.mjs';
+import { detectRole, roleRules } from './roles.mjs';
 
 /**
  * Files a tool call wrote, each with the violations it had before (null = unknown, skip findings).
  * A file a Codex patch adds had no violations before.
  */
+function takeSnapshot(input, abs, ctx) {
+  const key = snapshotKey(input, abs);
+  const before = readState(ctx.stateDir, key, null);
+  removeState(ctx.stateDir, key);
+  return before;
+}
+
 function writtenFiles(input, tool, ctx) {
   if (tool.kind === 'write' || tool.kind === 'edit') {
     if (!tool.filePath) return [];
-    const abs = resolve(ctx.projectDir, tool.filePath);
-    return [{ abs, before: readState(ctx.stateDir, snapshotKey(input, abs), null) }];
+    const abs = resolve(ctx.cwd ?? ctx.projectDir, tool.filePath);
+    return [{ abs, before: takeSnapshot(input, abs, ctx) }];
   }
   if (tool.kind === 'patch') {
     return tool.files.filter((f) => f.op !== 'delete').map((f) => {
-      const abs = resolve(ctx.projectDir, f.path);
-      return { abs, before: f.op === 'add' ? [] : readState(ctx.stateDir, snapshotKey(input, abs), null) };
+      const abs = resolve(ctx.cwd ?? ctx.projectDir, f.path);
+      return { abs, before: f.op === 'add' ? [] : takeSnapshot(input, abs, ctx) };
     });
   }
   return [];
@@ -35,8 +42,7 @@ export function handlePostToolUse(input, ctx) {
     if (!existsSync(abs)) continue;
     const text = readFileSync(abs, 'utf8');
     if (abs.endsWith('.java')) {
-      const changed = readState(ctx.stateDir, 'changedFiles', []);
-      if (!changed.includes(abs)) writeState(ctx.stateDir, 'changedFiles', [...changed, abs]);
+      addChangedFile(ctx.stateDir, abs);
       if (before) {
         // Hard ones too: an edit that slipped past PreToolUse (or a Codex patch) still gets reported.
         const after = findViolations(text, { path: abs, passport: readPassport(ctx.projectDir) });
@@ -44,10 +50,8 @@ export function handlePostToolUse(input, ctx) {
       }
     }
     const role = detectRole(abs, text);
-    const seen = readState(ctx.stateDir, 'rolesSeen', []);
-    if (role && !seen.includes(role)) {
-      writeState(ctx.stateDir, 'rolesSeen', [...seen, role]);
-      messages.push(`[forbxpg-java] ${role} rules:\n${ROLE_RULES[role]}`);
+    if (role && claimOnce(ctx.stateDir, 'roles', role)) {
+      messages.push(`[forbxpg-java] ${role} rules:\n${roleRules(role, readPassport(ctx.projectDir))}`);
     }
   }
   if (messages.length === 0) return {};

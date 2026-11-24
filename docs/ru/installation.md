@@ -23,7 +23,7 @@ gigacode extensions link /путь/к/forbxpg-java-best-practices-skill
   не ставит: `echo Y| gigacode extensions link <путь>`.
 - Именно `link`, не `install`: `install` видит `.claude-plugin/` и ставит папку как
   плагин Claude, теряя контекст-файл и хуки.
-- Манифест `gigacode-extension.json` загружает роутер через `contextFileName`, девять
+- Манифест `gigacode-extension.json` загружает роутер через `contextFileName`, десять
   скиллов из `skills/` и хуки. Хуков в манифесте расширения нет в документации GigaCode,
   но они работают (проверено на GigaCode 26.11.141).
 - Хуки включены по умолчанию; `"disableAllHooks": true` в `~/.gigacode/settings.json`
@@ -54,3 +54,24 @@ npx skills add forbxpg/forbxpg-java-best-practices-skill
 
 В Maven-проекте попросите агента добавить в сервис поле с `@Autowired`. Запись должна
 быть отклонена сообщением `[forbxpg-java] J1:` с упоминанием `@RequiredArgsConstructor`.
+
+## Установка в проект (для команды)
+
+`node install.mjs --agent gigacode|claude --scope project --project <репо>` копирует скиллы
+и хуки в репозиторий и регистрирует хуки в его настройках:
+
+| | GigaCode | Claude Code |
+|---|---|---|
+| скиллы | `.gigacode/skills/` | `.claude/skills/` |
+| хуки | `.gigacode/forbxpg-java/hooks/` | `.claude/forbxpg-java/hooks/` |
+| регистрация | слияние в `.gigacode/settings.json` | слияние в `.claude/settings.json` |
+| роутер | строка `@`-импорта в `GIGACODE.md` | печатает SessionStart-хук |
+
+- Чужие ключи настроек и хуки других инструментов сохраняются; установка пишет квитанцию
+  (`install-receipt.json`) со всеми файлами и их sha256.
+- `--update` заменяет только файлы, которые в проекте никто не менял; изменённые
+  перечисляются и остаются (`--force` заменяет и их). `--uninstall` удаляет ровно то, что
+  в квитанции, и восстанавливает `settings.json` и `GIGACODE.md`.
+- `settings.json` с комментариями не перезаписывается — установка откажет.
+- Результат коммитится. Каждый разработчик один раз одобряет хуки проекта, когда агент спросит.
+- GigaCode запускает хук по пути от корня проекта: открывайте сессии в корне.

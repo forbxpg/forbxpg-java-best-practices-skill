@@ -38,7 +38,7 @@ const cases = {
   },
   W1: {
     catch: [['@Entity\n@Data\npublic class Order {}'], ['@lombok.EqualsAndHashCode\n@Entity\nclass Order {}'], ['@Entity @ToString class Order {}']],
-    miss: [['@Data\npublic class OrderDto {}'], ['@Entity\n@Getter\n@Setter\nclass Order {}']],
+    miss: [['@Data\npublic class OrderDto {}'], ['@Entity\n@Getter\n@Setter\nclass Order {}'], ['@Entity @ToString(onlyExplicitlyIncluded = true) class O {}'], ['@Entity\n@EqualsAndHashCode(onlyExplicitlyIncluded = true)\nclass O {}']],
   },
   W2: {
     catch: [['class O { @ManyToOne private Customer c; }'], ['class O {\n  @OneToOne(\n    optional = false)\n  private Customer c;\n}']],
@@ -61,7 +61,7 @@ const cases = {
     catch: [['class A { void f() { log.info("id=" + id); } }'], ['class A { void f() { logger.warn(id + " failed"); } }']],
     miss: [['class A { void f() { log.info("id={}", id); } }'], ['class A { void f() { String s = "a" + b; } }']],
   },
-  W8: { catch: [['public class OrderServiceImpl implements OrderService {}']], miss: [['public class OrderService {}']] },
+  W8: { catch: [['public class OrderServiceImpl implements OrderService {}']], miss: [['public class OrderService {}'], ['class OrderRepositoryImpl implements OrderRepositoryCustom {}']] },
   W9: {
     catch: [['@RestController\nclass C {\n  private final OrderRepository orders;\n}']],
     miss: [['@Service\nclass S {\n  private final OrderRepository orders;\n}'], ['@RestController\nclass C {\n  private final OrderService orders;\n}']],

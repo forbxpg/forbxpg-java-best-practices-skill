@@ -50,6 +50,29 @@ function bootVersion(xml) {
   return bom ? resolve(tag(bom, 'version'), xml) : null;
 }
 
+/**
+ * Boot version behind a corporate parent or an aggregator root: a version property, a BOM in any
+ * pom, or the spring-boot-maven-plugin version — the first that names a concrete version.
+ */
+function fallbackBootVersion(poms) {
+  for (const { xml } of poms) {
+    for (const name of ['spring-boot\\.version', 'spring\\.boot\\.version', 'springboot\\.version']) {
+      const value = resolve(tag(xml, name), xml);
+      if (value && !value.includes('${')) return value;
+    }
+  }
+  for (const { xml } of poms) {
+    const value = bootVersion(xml);
+    if (value && !value.includes('${')) return value;
+  }
+  for (const { xml } of poms) {
+    const plugin = xml.match(/<plugin>((?:(?!<\/plugin>)[\s\S])*?<artifactId>spring-boot-maven-plugin<\/artifactId>[\s\S]*?)<\/plugin>/)?.[1];
+    const value = plugin ? resolve(tag(plugin, 'version'), xml) : null;
+    if (value && !value.includes('${')) return value;
+  }
+  return null;
+}
+
 function javaVersion(xml) {
   for (const name of ['maven\\.compiler\\.release', 'java\\.version', 'maven\\.compiler\\.source', 'maven\\.compiler\\.target', 'release']) {
     const value = resolve(tag(xml, name), xml);
@@ -69,7 +92,8 @@ function build(dir) {
   const poms = collectPoms(dir);
   const root = poms[0].xml;
   const all = poms.map((p) => p.xml).join('\n');
-  const boot = bootVersion(root);
+  const fromRoot = bootVersion(root);
+  const boot = fromRoot && !fromRoot.includes('${') ? fromRoot : fallbackBootVersion(poms);
   return {
     build: 'maven',
     wrapper: existsSync(join(dir, 'mvnw')) || existsSync(join(dir, 'mvnw.cmd')),
@@ -110,6 +134,19 @@ export function readPassport(projectDir) {
     // Cache is an optimisation only.
   }
   return passport;
+}
+
+/** Test-double annotation the project's Boot supports: @MockitoBean from 3.4, @MockBean before. */
+export function mockBeanName(passport) {
+  const [major, minor] = String(passport?.boot ?? '').split('.').map((n) => Number.parseInt(n, 10));
+  if (Number.isNaN(major)) return '@MockitoBean';
+  return major > 3 || (major === 3 && minor >= 4) ? '@MockitoBean' : '@MockBean';
+}
+
+/** Schema migration tool named the way the advice should say it. */
+export function migrationName(passport) {
+  if (passport?.flyway && !passport?.liquibase) return 'Flyway migration';
+  return 'Liquibase changeset';
 }
 
 export function bootMajor(passport) {

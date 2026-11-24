@@ -1,0 +1,18 @@
+flowchart TB
+  S["PostToolUse: запись уже на диске"] --> F["Файлы этого вызова<br/>+ снимок нарушений до записи из PreToolUse"]
+  F --> L{"Для каждого файла:<br/>существует?"}
+  L -->|"нет"| NEXT["следующий файл"]
+  L -->|"да"| J{".java?"}
+  J -->|"да"| CH["addChangedFile:<br/>отметка для Stop"]
+  CH --> SN{"Снимок до есть?"}
+  SN -->|"да"| NV["newViolations до и после:<br/>новые W, а в Codex и J"]
+  SN -->|"нет"| ROLE
+  NV --> ROLE
+  J -->|"нет"| ROLE["detectRole: controller, service,<br/>repository, entity, dto, mapper, config,<br/>exception-handler, test, liquibase"]
+  ROLE --> RQ{"Роль впервые<br/>в этой сессии?"}
+  RQ -->|"да"| RR["3–5 правил роли<br/>с учётом версии Boot и миграций"]
+  RQ -->|"нет"| NEXT
+  RR --> NEXT
+  NEXT --> M{"Есть сообщения?"}
+  M -->|"да"| OUT["stdout: JSON hookSpecificOutput.additionalContext"]
+  M -->|"нет"| Z["exit 0, пусто"]

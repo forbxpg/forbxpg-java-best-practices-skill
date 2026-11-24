@@ -1,0 +1,26 @@
+flowchart LR
+  subgraph OUT["Что вернул хук"]
+    o1["SessionStart: текст в stdout"]
+    o2["UserPromptSubmit: JSON<br/>additionalContext"]
+    o3["PreToolUse: exit 2 + stderr"]
+    o4["PostToolUse: JSON<br/>additionalContext"]
+    o5["Stop: JSON<br/>decision = block, reason"]
+    o6["Stop: JSON systemMessage"]
+    o7["exit 0 без вывода"]
+  end
+  subgraph CTX["Куда это попадает"]
+    c1["Контекст в начале сессии,<br/>до первого сообщения"]
+    c2["Рядом с сообщением пользователя<br/>в том же ходе"]
+    c3["Вместо результата инструмента:<br/>ошибка, запись не выполнена"]
+    c4["Рядом с результатом инструмента:<br/>самое свежее место контекста"]
+    c5["Модель не может закончить ход:<br/>reason становится следующим указанием"]
+    c6["Только пользователю на экран,<br/>модель не видит"]
+    c7["Никуда: модель о хуке не знает"]
+  end
+  o1 --> c1
+  o2 --> c2
+  o3 --> c3
+  o4 --> c4
+  o5 --> c5
+  o6 --> c6
+  o7 --> c7

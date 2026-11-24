@@ -44,7 +44,7 @@
             "timeout": 10
           }
         ],
-        "matcher": "apply_patch|Edit|Write|Bash|exec_command"
+        "matcher": "apply_patch|Edit|Write"
       }
     ],
     "Stop": [

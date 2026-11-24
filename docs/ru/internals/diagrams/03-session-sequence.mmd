@@ -1,0 +1,42 @@
+sequenceDiagram
+  autonumber
+  actor U as Пользователь
+  participant H as Харнесс
+  participant K as Хук: node java-hooks.mjs
+  participant M as Модель
+
+  U->>H: открывает сессию в папке проекта
+  H->>K: SessionStart, source = startup
+  K-->>H: stdout: паспорт проекта, в Claude и Codex ещё роутер
+  H->>M: системный контекст + паспорт
+
+  U->>H: сообщение
+  H->>K: UserPromptSubmit, prompt
+  K-->>H: additionalContext: якорь в GigaCode, иначе пусто
+  H->>M: сообщение + якорь
+
+  M->>H: вызов Write для OrderService.java
+  H->>K: PreToolUse, tool_name и tool_input
+  alt новое жёсткое нарушение
+    K-->>H: exit 2, stderr: [forbxpg-java] J1 ...
+    H-->>M: инструмент не выполнен, текст отказа
+    M->>H: исправленный Write
+    H->>K: PreToolUse
+  end
+  K-->>H: exit 0
+  H->>H: выполняет запись на диск
+  H->>K: PostToolUse
+  K-->>H: additionalContext: замечания W и правила роли
+  H->>M: результат инструмента + additionalContext
+
+  M->>H: заканчивает ход
+  H->>K: Stop
+  K->>K: mvn -q -o compile для затронутых модулей
+  alt ошибки компиляции в файлах этой сессии
+    K-->>H: decision = block, reason = список ошибок
+    H->>M: reason как указание продолжить
+    M->>H: исправления, затем снова конец хода
+  else сборка прошла
+    K-->>H: пусто
+    H->>U: ответ модели
+  end

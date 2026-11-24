@@ -1,0 +1,10 @@
+stateDiagram-v2
+  state "Старт сессии" as Start
+  state "Обычная работа" as Normal
+  state "Контекст сжат" as Compacted
+
+  [*] --> Start: SessionStart startup, resume, clear
+  Start --> Normal: паспорт, в Claude и Codex ещё роутер
+  Normal --> Normal: UserPromptSubmit, якорь до 60 токенов в GigaCode
+  Normal --> Compacted: PostCompact в GigaCode или SessionStart compact в Claude
+  Compacted --> Normal: следующий UserPromptSubmit, блок восстановления до 400 токенов

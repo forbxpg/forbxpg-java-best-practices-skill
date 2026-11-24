@@ -13,7 +13,8 @@ only `java-language`.
 
 ## Rules that always hold
 
-1. **Load `java-conventions` before you create a class, package, module or project.**
+1. **Designing a change (grill, spec, plan)? Load `java-design-decisions` first.**
+   **Writing code? Load `java-conventions` before you create a class, package, module or project.**
 2. Packages by layer: `config, controller, dto, entity, exception, mapper, repository,
    service` (+ `client` for outbound HTTP, `facade` when one use case spans services).
 3. Services are concrete `@Service` classes: no interface + `*Impl`.
@@ -40,6 +41,7 @@ only `java-language`.
 
 | Task | Load |
 |---|---|
+| Planning, grilling or speccing a Java change (before code) | `java-design-decisions` |
 | New class, package, module or project; naming; Lombok; DTO and mapping; config files | `java-conventions` |
 | Plain Java: records, sealed types, pattern matching, Optional, exceptions, streams, concurrency | `java-language` |
 | Controllers, services, validation, errors, HTTP clients, transactions, `@Async` / `@Scheduled` | `spring-boot-service` |

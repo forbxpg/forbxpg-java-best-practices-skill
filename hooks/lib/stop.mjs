@@ -1,7 +1,7 @@
 // Stop: warn once when the context fills up; compile what the session changed and block on its own errors.
 import { existsSync, statSync, realpathSync } from 'node:fs';
 import { dirname, join, relative, resolve, normalize } from 'node:path';
-import { readState, writeState, sha1 } from './state.mjs';
+import { readState, writeState, sha1, changedFiles } from './state.mjs';
 import { mavenCommand, runCompile as realRunCompile, parseCompileErrors } from './maven.mjs';
 
 const COMPILE_TIMEOUT_MS = 180_000;
@@ -36,11 +36,11 @@ export async function handleStop(input, ctx, runCompile = realRunCompile) {
   if (!input.stop_hook_active && usage >= ctx.config.contextWarnAt && !readState(ctx.stateDir, 'contextWarned', false)) {
     writeState(ctx.stateDir, 'contextWarned', true);
     const percent = Math.round(usage * 100);
-    return block(`[forbxpg-java] The context is ${percent}% full and older details will soon be compacted away. Before you stop, write a handoff note: grillspec note handoff -- "done: ...; next: ...; open: ...". Then finish your answer.`);
+    return block(`[forbxpg-java] The context is ${percent}% full and older details will soon be compacted away. Before you stop, write a handoff note: if grillspec is installed, grillspec note handoff -- "done: ...; next: ...; open: ..."; otherwise put the same three lines at the top of your plan file. Then finish your answer.`);
   }
 
   if (!ctx.config.stopCompile) return {};
-  const changed = readState(ctx.stateDir, 'changedFiles', []).filter((f) => existsSync(f));
+  const changed = changedFiles(ctx.stateDir).filter((f) => existsSync(f));
   if (changed.length === 0) return {};
   const fingerprint = sha1(changed.map((f) => `${f}:${statSync(f).mtimeMs}`).sort().join('\n'));
   if (readState(ctx.stateDir, 'lastOkFingerprint', null) === fingerprint) return {};

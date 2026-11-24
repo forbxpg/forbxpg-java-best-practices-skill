@@ -1,0 +1,20 @@
+flowchart TB
+  A["Харнесс: случилось событие,<br/>matcher совпал с именем инструмента"] --> B["Новый процесс:<br/>node java-hooks.mjs Event --harness X"]
+  B --> C["stdin: JSON события<br/>session_id, cwd, tool_name, tool_input ..."]
+  C --> D{"JSON разобран?"}
+  D -->|"нет"| L1["строка в hook.log<br/>exit 0"]
+  D -->|"да"| E{"Есть обработчик<br/>для события?"}
+  E -->|"нет"| Z["exit 0, вывода нет"]
+  E -->|"да"| F["findMavenRoot:<br/>ищет корень Maven-проекта"]
+  F --> G{"Корень найден?"}
+  G -->|"нет: не Java-проект"| Z
+  G -->|"да"| H["ctx: корень, папка сессии,<br/>stateDir, forbxpg-java.json"]
+  H --> I["Обработчик события<br/>pre / post / session / stop"]
+  I --> J{"Исключение?"}
+  J -->|"да"| L2["hook.log, exit 0<br/>fail open: не мешать работе"]
+  J -->|"нет"| K["Результат: код выхода,<br/>stdout, stderr"]
+  K --> R{"Как харнесс читает результат"}
+  R --> R0["exit 0, пусто:<br/>ничего не происходит"]
+  R --> R2["exit 2:<br/>действие отменено, stderr уходит модели"]
+  R --> RJ["exit 0 + JSON:<br/>additionalContext, decision, systemMessage"]
+  R --> RT["exit 0 + обычный текст в SessionStart:<br/>текст добавляется в контекст"]

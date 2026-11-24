@@ -6,12 +6,18 @@ import { readState, writeState } from './state.mjs';
 import { readPassport, passportLine } from './passport.mjs';
 import { anchorText, recoveryText } from './anchor-text.mjs';
 
-const ROUTER = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'skills', 'using-java-best-practices', 'SKILL.md');
+const HERE = dirname(fileURLToPath(import.meta.url));
+/** Router locations: this repository (hooks/lib → skills) and a project install (.claude/forbxpg-java/hooks/lib → .claude/skills). */
+const ROUTERS = [
+  join(HERE, '..', '..', 'skills', 'using-java-best-practices', 'SKILL.md'),
+  join(HERE, '..', '..', '..', 'skills', 'using-java-best-practices', 'SKILL.md'),
+];
 
 /** Router body without frontmatter, or '' when the skill is not there. */
 function routerBody() {
-  if (!existsSync(ROUTER)) return '';
-  return readFileSync(ROUTER, 'utf8').replace(/^---[\s\S]*?\n---\s*\n/, '').trim();
+  const router = ROUTERS.find((p) => existsSync(p));
+  if (!router) return '';
+  return readFileSync(router, 'utf8').replace(/^---[\s\S]*?\n---\s*\n/, '').trim();
 }
 
 export function handleSessionStart(input, ctx) {
