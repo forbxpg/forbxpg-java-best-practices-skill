@@ -63,7 +63,7 @@ Interfaces:
    unchanged; receipt paths use `/`. Run. Expected: FAIL.
 2. Implement. Commit `feat(installer): project install for GigaCode`.
 
-- [ ] 2.2 Project install for Claude Code, update and force — verify: node --test tests/installer.test.mjs passes
+- [x] 2.2 Project install for Claude Code, update and force — verify: node --test tests/installer.test.mjs passes
 
 Covers: S-INST-6a · Test: scenario-first
 

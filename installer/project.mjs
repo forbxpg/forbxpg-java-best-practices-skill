@@ -19,6 +19,17 @@ export const LAYOUTS = {
     context: { file: 'GIGACODE.md', line: '@.gigacode/skills/using-java-best-practices/SKILL.md' },
     command: (event) => `node .gigacode/forbxpg-java/hooks/java-hooks.mjs ${event} --harness gigacode`,
   },
+  claude: {
+    root: '.claude',
+    skills: '.claude/skills',
+    hooks: '.claude/forbxpg-java/hooks',
+    settings: '.claude/settings.json',
+    receipt: '.claude/forbxpg-java/install-receipt.json',
+    manifest: 'hooks/hooks.json',
+    // Claude Code loads the router through the SessionStart hook; no context file to edit.
+    context: null,
+    command: (event) => `node "$CLAUDE_PROJECT_DIR/.claude/forbxpg-java/hooks/java-hooks.mjs" ${event} --harness claude`,
+  },
 };
 
 function layoutOf(agent) {
@@ -73,13 +84,16 @@ function readReceipt(projectDir, layout) {
 }
 
 /**
- * Installs (or re-installs) into projectDir. Returns { written, skipped, removed }.
- * dryRun computes the same lists without touching the disk.
+ * Installs into projectDir, or updates a previous install. A file changed in the project since the
+ * last install (its sha256 differs from the receipt) is kept unless force; so is a file the install
+ * did not write. Files the new version no longer has are removed when unchanged.
+ * Returns { written, skipped, removed }; dryRun computes the same lists without touching the disk.
  */
-export function installProject({ repoDir, projectDir, agent, dryRun = false }) {
+export function installProject({ repoDir, projectDir, agent, dryRun = false, force = false }) {
   const layout = layoutOf(agent);
   const version = JSON.parse(readFileSync(join(repoDir, '.claude-plugin', 'plugin.json'), 'utf8')).version;
   const previous = readReceipt(projectDir, layout);
+  const known = previous?.files ?? {};
 
   // Validate everything before the first write.
   const settingsPath = join(projectDir, layout.settings);
@@ -87,31 +101,60 @@ export function installProject({ repoDir, projectDir, agent, dryRun = false }) {
   const settings = parseSettings(settingsText ?? '', layout.settings);
   const files = sourceFiles(repoDir, layout);
 
-  const result = { written: files.map((f) => f.to), skipped: [], removed: [] };
+  const createdRoot = previous?.createdRoot ?? !existsSync(join(projectDir, layout.root));
+  const result = { written: [], skipped: [], removed: [] };
+  const receiptFiles = {};
+  const plan = [];
+  for (const file of files) {
+    const target = join(projectDir, file.to);
+    const onDisk = readIf(target);
+    const untouched = onDisk === null || (known[file.to] !== undefined && sha256(onDisk) === known[file.to]);
+    if (!untouched && !force) {
+      result.skipped.push(file.to);
+      if (known[file.to]) receiptFiles[file.to] = known[file.to];
+      continue;
+    }
+    const text = readFileSync(file.from, 'utf8');
+    plan.push({ target, text });
+    receiptFiles[file.to] = sha256(text);
+    result.written.push(file.to);
+  }
+  const dropped = Object.keys(known).filter((rel) => !files.some((f) => f.to === rel));
+  for (const rel of dropped) {
+    const onDisk = readIf(join(projectDir, rel));
+    if (onDisk === null) continue;
+    if (sha256(onDisk) === known[rel] || force) result.removed.push(rel);
+    else result.skipped.push(rel);
+  }
   if (dryRun) return result;
 
+  for (const { target, text } of plan) write(target, text);
+  for (const rel of result.removed) {
+    rmSync(join(projectDir, rel));
+    pruneEmpty(dirname(join(projectDir, rel)), join(projectDir, layout.root));
+  }
+  write(settingsPath, formatSettings(mergeHooks(settings, hooksBlock(repoDir, layout))));
+
+  let contextBefore = null;
+  if (layout.context) {
+    const contextPath = join(projectDir, layout.context.file);
+    const context = readIf(contextPath);
+    contextBefore = previous ? previous.contextBefore : context;
+    const text = context ?? '';
+    if (!text.split(/\r?\n/).includes(layout.context.line)) {
+      const sep = text === '' || text.endsWith('\n') ? '' : '\n';
+      write(contextPath, `${text}${sep}${text === '' ? '' : '\n'}${layout.context.line}\n`);
+    }
+  }
   const receipt = {
     name: 'forbxpg-java',
     version,
     agent,
-    files: {},
-    createdRoot: previous?.createdRoot ?? !existsSync(join(projectDir, layout.root)),
+    files: receiptFiles,
+    createdRoot,
     settingsBefore: previous ? previous.settingsBefore : settingsText,
-    contextBefore: previous ? previous.contextBefore : readIf(join(projectDir, layout.context.file)),
+    contextBefore,
   };
-  for (const file of files) {
-    const text = readFileSync(file.from, 'utf8');
-    write(join(projectDir, file.to), text);
-    receipt.files[file.to] = sha256(text);
-  }
-  write(settingsPath, formatSettings(mergeHooks(settings, hooksBlock(repoDir, layout))));
-
-  const contextPath = join(projectDir, layout.context.file);
-  const context = readIf(contextPath) ?? '';
-  if (!context.split(/\r?\n/).includes(layout.context.line)) {
-    const sep = context === '' || context.endsWith('\n') ? '' : '\n';
-    write(contextPath, `${context}${sep}${context === '' ? '' : '\n'}${layout.context.line}\n`);
-  }
   write(join(projectDir, layout.receipt), `${JSON.stringify(receipt, null, 2)}\n`);
   return result;
 }
@@ -152,8 +195,8 @@ export function uninstallProject({ projectDir, agent }) {
     else writeFileSync(settingsPath, formatSettings(cleaned));
   }
 
-  const contextPath = join(projectDir, layout.context.file);
-  const context = readIf(contextPath);
+  const contextPath = layout.context ? join(projectDir, layout.context.file) : null;
+  const context = contextPath ? readIf(contextPath) : null;
   if (context !== null) {
     const without = context.split(/\r?\n/).filter((l) => l !== layout.context.line).join('\n');
     if (receipt.contextBefore === null && without.trim() === '') rmSync(contextPath);

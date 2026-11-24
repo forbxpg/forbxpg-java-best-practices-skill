@@ -97,3 +97,72 @@ test('Review Focus 1: settings.json with comments is refused and left untouched'
   assert.equal(read(dir, '.gigacode/settings.json'), jsonc);
   assert.ok(!existsSync(join(dir, '.gigacode/skills')), 'nothing copied when settings cannot be merged');
 });
+
+// ---- 2.2: Claude Code layout, coexistence, update and force ----
+import { cpSync, rmSync as rm, mkdirSync as mkdir } from 'node:fs';
+
+/** A copy of the repository parts the installer reads, so a test can change the source. */
+function repoCopy() {
+  const dir = tempProject();
+  for (const part of ['skills', 'hooks', 'gigacode-extension.json', '.claude-plugin']) cpSync(join(REPO, part), join(dir, part), { recursive: true });
+  return dir;
+}
+
+test('Claude Code project install: .claude layout, $CLAUDE_PROJECT_DIR command, no GIGACODE.md', () => {
+  const dir = tempProject({ 'pom.xml': BOOT4_POM });
+  installProject({ repoDir: REPO, projectDir: dir, agent: 'claude' });
+  assert.ok(existsSync(join(dir, '.claude/skills/java-testing/SKILL.md')));
+  assert.ok(existsSync(join(dir, '.claude/forbxpg-java/hooks/lib/stop.mjs')));
+  const settings = JSON.parse(read(dir, '.claude/settings.json'));
+  const pre = settings.hooks.PreToolUse[0];
+  assert.equal(pre.hooks[0].command, 'node "$CLAUDE_PROJECT_DIR/.claude/forbxpg-java/hooks/java-hooks.mjs" PreToolUse --harness claude');
+  assert.equal(pre.matcher, 'Write|Edit|MultiEdit|Bash');
+  assert.ok(!existsSync(join(dir, 'GIGACODE.md')));
+});
+
+test('the Claude-installed hook prints the router at SessionStart', () => {
+  const dir = tempProject({ 'pom.xml': BOOT4_POM });
+  installProject({ repoDir: REPO, projectDir: dir, agent: 'claude' });
+  const env = { ...process.env, CLAUDE_PROJECT_DIR: dir, GIGACODE_PROJECT_DIR: '', QWEN_PROJECT_DIR: '' };
+  const r = spawnSync(process.execPath, [join(dir, '.claude/forbxpg-java/hooks/java-hooks.mjs'), 'SessionStart', '--harness', 'claude'],
+    { cwd: dir, input: JSON.stringify({ session_id: 's', cwd: dir, source: 'startup' }), env, encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /Java best practices: core rules/);
+});
+
+test('Review Focus 3: GigaCode and Claude Code installs coexist; removing one keeps the other', () => {
+  const dir = tempProject({ 'pom.xml': BOOT4_POM });
+  installProject({ repoDir: REPO, projectDir: dir, agent: 'gigacode' });
+  installProject({ repoDir: REPO, projectDir: dir, agent: 'claude' });
+  uninstallProject({ projectDir: dir, agent: 'claude' });
+  assert.ok(!existsSync(join(dir, '.claude')));
+  assert.ok(existsSync(join(dir, '.gigacode/skills/java-conventions/SKILL.md')));
+  assert.ok(JSON.parse(read(dir, '.gigacode/settings.json')).hooks.PreToolUse);
+});
+
+test('S-INST-6a: --update keeps a skill edited in the project; --force replaces it', () => {
+  const dir = tempProject({ 'pom.xml': BOOT4_POM });
+  installProject({ repoDir: REPO, projectDir: dir, agent: 'gigacode' });
+  const rel = '.gigacode/skills/java-conventions/SKILL.md';
+  writeFileSync(join(dir, rel), `${read(dir, rel)}\n- Team rule: no Feign.\n`);
+  const kept = installProject({ repoDir: REPO, projectDir: dir, agent: 'gigacode' });
+  assert.deepEqual(kept.skipped, [rel]);
+  assert.match(read(dir, rel), /Team rule: no Feign/);
+  installProject({ repoDir: REPO, projectDir: dir, agent: 'gigacode', force: true });
+  assert.doesNotMatch(read(dir, rel), /Team rule/);
+});
+
+test('update replaces unchanged files, adds new ones and removes files the new version dropped', () => {
+  const repo = repoCopy();
+  const dir = tempProject({ 'pom.xml': BOOT4_POM });
+  installProject({ repoDir: repo, projectDir: dir, agent: 'gigacode' });
+  mkdir(join(repo, 'skills/java-new-skill'), { recursive: true });
+  writeFileSync(join(repo, 'skills/java-new-skill/SKILL.md'), '---\nname: java-new-skill\ndescription: x\n---\n');
+  writeFileSync(join(repo, 'skills/java-testing/SKILL.md'), 'updated testing skill\n');
+  rm(join(repo, 'skills/java-verification'), { recursive: true });
+  const result = installProject({ repoDir: repo, projectDir: dir, agent: 'gigacode' });
+  assert.equal(read(dir, '.gigacode/skills/java-testing/SKILL.md'), 'updated testing skill\n');
+  assert.ok(existsSync(join(dir, '.gigacode/skills/java-new-skill/SKILL.md')));
+  assert.ok(!existsSync(join(dir, '.gigacode/skills/java-verification')));
+  assert.ok(result.removed.includes('.gigacode/skills/java-verification/SKILL.md'));
+});
