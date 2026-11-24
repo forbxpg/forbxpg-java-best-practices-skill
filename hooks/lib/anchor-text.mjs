@@ -1,5 +1,5 @@
 // Texts the hooks put in front of the model: a per-prompt anchor and a block after compaction.
-import { passportLine } from './passport.mjs';
+import { passportLine, mockBeanName, migrationName } from './passport.mjs';
 
 const compile = (p) => (p.wrapper ? './mvnw -q compile' : 'mvn -q compile');
 
@@ -18,8 +18,8 @@ export function recoveryText(p) {
     'Entities: @Getter @Setter, never @Data; LAZY relations; @Enumerated(EnumType.STRING).',
     p.mapstruct ? 'Mappers: MapStruct with unmappedTargetPolicy = ReportingPolicy.ERROR.' : 'Mapping: static factory methods in the DTO records.',
     'Errors: ProblemDetail from one @RestControllerAdvice.',
-    p.liquibase ? 'Schema: add a new Liquibase changeset; never edit one that reached main.' : 'Schema changes go through migrations, never ddl-auto.',
-    'Tests: JUnit 5 + AssertJ, slices on H2, @MockitoBean; never @Disabled a failing test.',
+    p.liquibase || p.flyway ? `Schema: add a new ${migrationName(p)}; never edit one that reached main.` : 'Schema changes go through migrations, never ddl-auto.',
+    `Tests: JUnit 5 + AssertJ, slices on H2, ${mockBeanName(p)}; never @Disabled a failing test.`,
     `One class per step; run ${compile(p)} after each step; claim "done" only with build output (java-verification).`,
   ];
   return [

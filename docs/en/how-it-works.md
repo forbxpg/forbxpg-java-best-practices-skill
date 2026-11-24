@@ -44,8 +44,9 @@ result — the freshest place in the model's context.
 
 ## End of turn (Stop)
 
-- Once per session at `context_usage ≥ 0.70`, the model is asked to write a grillspec
-  handoff note.
+- Once per session at `context_usage ≥ 0.70`, the model is asked to write a handoff note
+  (`grillspec note handoff` when grillspec is installed, otherwise at the top of its plan
+  file). Only GigaCode sends `context_usage`; in Claude Code this warning never fires.
 - If the session changed `.java` files since the last successful check, the hook runs
   `mvnw -q -o compile` (or `mvn`) for the affected modules (180 s timeout). It blocks only
   on errors in files the session changed, at most twice per change set; anything it cannot

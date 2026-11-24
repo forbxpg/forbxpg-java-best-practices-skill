@@ -136,6 +136,19 @@ export function readPassport(projectDir) {
   return passport;
 }
 
+/** Test-double annotation the project's Boot supports: @MockitoBean from 3.4, @MockBean before. */
+export function mockBeanName(passport) {
+  const [major, minor] = String(passport?.boot ?? '').split('.').map((n) => Number.parseInt(n, 10));
+  if (Number.isNaN(major)) return '@MockitoBean';
+  return major > 3 || (major === 3 && minor >= 4) ? '@MockitoBean' : '@MockBean';
+}
+
+/** Schema migration tool named the way the advice should say it. */
+export function migrationName(passport) {
+  if (passport?.flyway && !passport?.liquibase) return 'Flyway migration';
+  return 'Liquibase changeset';
+}
+
 export function bootMajor(passport) {
   const major = Number.parseInt(passport?.boot ?? '', 10);
   return Number.isNaN(major) ? null : major;

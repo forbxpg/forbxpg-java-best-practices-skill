@@ -6,7 +6,7 @@ import { readState, writeState } from './state.mjs';
 import { readPassport } from './passport.mjs';
 import { findViolations, newViolations, formatViolation } from './rules.mjs';
 import { snapshotKey } from './pre.mjs';
-import { detectRole, ROLE_RULES } from './roles.mjs';
+import { detectRole, roleRules } from './roles.mjs';
 
 /**
  * Files a tool call wrote, each with the violations it had before (null = unknown, skip findings).
@@ -47,7 +47,7 @@ export function handlePostToolUse(input, ctx) {
     const seen = readState(ctx.stateDir, 'rolesSeen', []);
     if (role && !seen.includes(role)) {
       writeState(ctx.stateDir, 'rolesSeen', [...seen, role]);
-      messages.push(`[forbxpg-java] ${role} rules:\n${ROLE_RULES[role]}`);
+      messages.push(`[forbxpg-java] ${role} rules:\n${roleRules(role, readPassport(ctx.projectDir))}`);
     }
   }
   if (messages.length === 0) return {};

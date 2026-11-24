@@ -114,7 +114,7 @@ Files: modify hooks/lib/passport.mjs, tests/passport.test.mjs
    Run. Expected: FAIL.
 2. Fix. Commit `fix(hooks): find the Boot version behind a corporate parent`.
 
-- [ ] 3.3 Version-aware texts M4, M8 — verify: node --test passes
+- [x] 3.3 Version-aware texts M4, M8 — verify: node --test passes
 
 Covers: — · Test: reproduce-first
 

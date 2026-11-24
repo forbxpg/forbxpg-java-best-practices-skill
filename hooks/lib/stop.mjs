@@ -36,7 +36,7 @@ export async function handleStop(input, ctx, runCompile = realRunCompile) {
   if (!input.stop_hook_active && usage >= ctx.config.contextWarnAt && !readState(ctx.stateDir, 'contextWarned', false)) {
     writeState(ctx.stateDir, 'contextWarned', true);
     const percent = Math.round(usage * 100);
-    return block(`[forbxpg-java] The context is ${percent}% full and older details will soon be compacted away. Before you stop, write a handoff note: grillspec note handoff -- "done: ...; next: ...; open: ...". Then finish your answer.`);
+    return block(`[forbxpg-java] The context is ${percent}% full and older details will soon be compacted away. Before you stop, write a handoff note: if grillspec is installed, grillspec note handoff -- "done: ...; next: ...; open: ..."; otherwise put the same three lines at the top of your plan file. Then finish your answer.`);
   }
 
   if (!ctx.config.stopCompile) return {};
