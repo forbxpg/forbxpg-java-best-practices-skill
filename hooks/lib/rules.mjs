@@ -112,7 +112,8 @@ export function findViolations(text, { path = '', passport = {} } = {}) {
     if (/@(lombok\.)?SneakyThrows\b/.test(line)) add('W6', i);
     const log = line.match(/\b(log|logger|LOG|LOGGER)\.(trace|debug|info|warn|error)\s*\((.*)/);
     if (log && /"\s*\+|\+\s*"/.test(log[3])) add('W7', i);
-    if (/\bclass\s+\w+Impl\b/.test(line)) add('W8', i);
+    // Spring Data requires the *RepositoryImpl name for custom repository fragments.
+    if (/\bclass\s+(?!\w*RepositoryImpl\b)\w+Impl\b/.test(line)) add('W8', i);
     if (isController && !/^\s*import\b/.test(line) && /\b\w*Repository\s+\w+\s*[;,)=]/.test(line)) add('W9', i);
     if (mapstructFile) {
       const mapper = line.search(/@Mapper\b/);
@@ -132,7 +133,10 @@ export function findViolations(text, { path = '', passport = {} } = {}) {
       const block = annotationBlock(lines, i, decl.index);
       const isEntity = block.some((b) => ENTITY.test(b.text));
       for (const b of block) {
-        if (isEntity && /@(lombok\.)?(Data|EqualsAndHashCode|ToString)\b/.test(b.text)) add('W1', b.idx);
+        const lombok = b.text.match(/@(lombok\.)?(Data|EqualsAndHashCode|ToString)\b/);
+        // onlyExplicitlyIncluded = true is the JPA-safe form: only fields marked @Include take part.
+        const explicit = lombok && lombok[2] !== 'Data' && /onlyExplicitlyIncluded\s*=\s*true/.test(b.text);
+        if (isEntity && lombok && !explicit) add('W1', b.idx);
         if (!isEntity && decl[1] === 'class' && /(Dto|Request|Response)$/.test(decl[2]) && /@(lombok\.)?Data\b/.test(b.text)) add('W12', b.idx);
       }
     }

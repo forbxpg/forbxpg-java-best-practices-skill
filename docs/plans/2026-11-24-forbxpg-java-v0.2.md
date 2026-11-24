@@ -93,7 +93,7 @@ Interfaces:
 
 ## 3. Review minors
 
-- [ ] 3.1 Rules M1, M2 — verify: node --test passes
+- [x] 3.1 Rules M1, M2 — verify: node --test passes
 
 Covers: — · Test: reproduce-first
 
