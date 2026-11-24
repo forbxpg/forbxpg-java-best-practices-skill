@@ -44,7 +44,7 @@ skills/using-java-best-practices/SKILL.md, evals/routing.tsv
 
 ## 2. Installer
 
-- [ ] 2.1 Project install for GigaCode — verify: node --test tests/installer.test.mjs passes
+- [x] 2.1 Project install for GigaCode — verify: node --test tests/installer.test.mjs passes
 
 Covers: S-INST-4a, S-INST-5a · Test: scenario-first
 
