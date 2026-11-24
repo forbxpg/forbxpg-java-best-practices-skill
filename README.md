@@ -1,6 +1,6 @@
 # forbxpg-java
 
-Java / Spring Boot best practices for coding agents — **nine Agent Skills plus hooks that
+Java / Spring Boot best practices for coding agents — **ten Agent Skills plus hooks that
 enforce the rules even when the model forgets them.**
 
 Claude Code · GigaCode · Codex — Windows, Linux, macOS — Node ≥ 20, no other runtime.
@@ -29,6 +29,7 @@ Liquibase, layered packages) and from an analysis of ten public Java skill colle
 | Skill | For |
 |---|---|
 | `using-java-best-practices` | always loaded: passport, 13 core rules, which skill when |
+| `java-design-decisions` | before code: the API, data, integration, testing and rollout decisions to settle (works with any design process, e.g. a grillspec grill) |
 | `java-conventions` | layout, packages, naming, Lombok by role, DTO records, MapStruct, configuration |
 | `java-language` | modern Java 21 / 25: records, sealed types, patterns, exceptions, concurrency |
 | `spring-boot-service` | controllers, validation, ProblemDetail, transactions and proxies, HTTP clients, `@Async` / `@Scheduled`, Boot 3 vs 4 |
@@ -53,17 +54,24 @@ Only violations an edit **introduces** are blocked: legacy code is never in the 
 
 ## Install
 
+Clone the repository (or unpack a release), then:
+
 ```bash
-# Claude Code
-claude plugin marketplace add forbxpg/forbxpg-java-best-practices-skill
-claude plugin install forbxpg-java
+# for you, in every project (the agent's own CLI registers this folder; git pull updates it)
+node install.mjs --agent gigacode --scope user
+node install.mjs --agent claude   --scope user
 
-# GigaCode (local folder; answer Y)
-gigacode extensions link /path/to/forbxpg-java-best-practices-skill
+# into one repository (.gigacode/ or .claude/), committed so the whole team gets it
+node install.mjs --agent gigacode --scope project --project ../my-service
+node install.mjs --agent claude   --scope project --project ../my-service
 
-# Any Agent Skills agent (skills only, no hooks)
-npx skills add forbxpg/forbxpg-java-best-practices-skill
+# later: update (keeps files the team edited), or remove exactly what was installed
+node install.mjs --agent gigacode --scope project --project ../my-service --update
+node install.mjs --agent gigacode --scope project --project ../my-service --uninstall
 ```
+
+`--dry-run` shows the plan without changing anything. Skills only, without hooks:
+`npx skills add forbxpg/forbxpg-java-best-practices-skill`.
 
 Codex and details: [docs/en/installation.md](docs/en/installation.md).
 

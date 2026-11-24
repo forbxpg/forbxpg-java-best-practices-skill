@@ -1,6 +1,6 @@
 # forbxpg-java
 
-Best practices Java / Spring Boot для агентов — **девять Agent Skills и хуки, которые
+Best practices Java / Spring Boot для агентов — **десять Agent Skills и хуки, которые
 держат правила, даже когда модель их забыла.**
 
 Claude Code · GigaCode · Codex — Windows, Linux, macOS — нужен только Node ≥ 20.
@@ -28,6 +28,7 @@ Claude Code · GigaCode · Codex — Windows, Linux, macOS — нужен тол
 | Скилл | О чём |
 |---|---|
 | `using-java-best-practices` | всегда загружен: паспорт проекта, 13 главных правил, какой скилл когда |
+| `java-design-decisions` | до кода: какие решения по API, данным, интеграциям, тестам и выкатке надо принять (работает с любым процессом проектирования, например с грилем grillspec) |
 | `java-conventions` | раскладка, пакеты, именование, Lombok по ролям, DTO-records, MapStruct, конфигурация |
 | `java-language` | современная Java 21 / 25: records, sealed, patterns, исключения, конкурентность |
 | `spring-boot-service` | контроллеры, валидация, ProblemDetail, транзакции и прокси, HTTP-клиенты, `@Async` / `@Scheduled`, Boot 3 и 4 |
@@ -52,17 +53,24 @@ Claude Code · GigaCode · Codex — Windows, Linux, macOS — нужен тол
 
 ## Установка
 
+Склонируйте репозиторий (или распакуйте релиз), затем:
+
 ```bash
-# Claude Code
-claude plugin marketplace add forbxpg/forbxpg-java-best-practices-skill
-claude plugin install forbxpg-java
+# себе, во все проекты (регистрирует папку CLI самого агента; обновление — git pull)
+node install.mjs --agent gigacode --scope user
+node install.mjs --agent claude   --scope user
 
-# GigaCode (локальная папка; ответить Y)
-gigacode extensions link /путь/к/forbxpg-java-best-practices-skill
+# в один репозиторий (.gigacode/ или .claude/), коммитится — вся команда получает через git
+node install.mjs --agent gigacode --scope project --project ../my-service
+node install.mjs --agent claude   --scope project --project ../my-service
 
-# Любой агент со Agent Skills (только скиллы, без хуков)
-npx skills add forbxpg/forbxpg-java-best-practices-skill
+# потом: обновить (правки команды сохраняются) или удалить ровно то, что ставили
+node install.mjs --agent gigacode --scope project --project ../my-service --update
+node install.mjs --agent gigacode --scope project --project ../my-service --uninstall
 ```
+
+`--dry-run` показывает план, ничего не меняя. Только скиллы, без хуков:
+`npx skills add forbxpg/forbxpg-java-best-practices-skill`.
 
 Codex и подробности: [docs/ru/installation.md](docs/ru/installation.md).
 

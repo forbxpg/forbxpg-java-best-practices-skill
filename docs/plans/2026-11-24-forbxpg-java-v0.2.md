@@ -161,7 +161,7 @@ Files: none (CHANGELOG.md and version bump to 0.2.0 in the final commit)
 2. Same after `node install.mjs --agent claude --scope project`.
 3. Bump versions to 0.2.0, CHANGELOG; commit `chore(release): 0.2.0`.
 
-- [ ] 4.2 GigaCode project-install probe prompt — verify: prompt file exists and is shown to the user
+- [x] 4.2 GigaCode project-install probe prompt — verify: prompt file exists and is shown to the user
 
 Covers: — · Test: none: a prompt for the work machine
 
