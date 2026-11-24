@@ -1,0 +1,1 @@
+{"session_id":"s-claude","cwd":"/proj","hook_event_name":"PreToolUse","tool_name":"Edit","tool_input":{"file_path":"/proj/src/main/java/a/Foo.java","old_string":"class Foo {}","new_string":"class Foo { int x; }","replace_all":false},"tool_use_id":"toolu_c2"}

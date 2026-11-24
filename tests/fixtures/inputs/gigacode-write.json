@@ -1,0 +1,1 @@
+{"session_id":"s-giga","transcript_path":"C:\\Users\\u\\.gigacode\\x.jsonl","cwd":"C:\\proj","hook_event_name":"PreToolUse","timestamp":"2026-11-24T14:04:38.379Z","permission_mode":"default","prompt_id":"p1","tool_name":"write_file","tool_input":{"file_path":"C:\\proj\\src\\main\\java\\a\\Foo.java","content":"class Foo {}\r\n"},"tool_use_id":"toolu_g1","tool_call_id":"call_g1"}

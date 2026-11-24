@@ -1,0 +1,1 @@
+{"session_id":"s-codex","cwd":"/proj","hook_event_name":"PreToolUse","tool_name":"apply_patch","tool_input":{"input":"*** Begin Patch\n*** Update File: src/main/java/a/Foo.java\n*** End Patch"}}

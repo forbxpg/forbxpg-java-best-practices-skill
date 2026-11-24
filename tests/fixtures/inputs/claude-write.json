@@ -1,0 +1,1 @@
+{"session_id":"s-claude","cwd":"/proj","hook_event_name":"PreToolUse","tool_name":"Write","tool_input":{"file_path":"/proj/src/main/java/a/Foo.java","content":"class Foo {}\n"},"tool_use_id":"toolu_c1"}

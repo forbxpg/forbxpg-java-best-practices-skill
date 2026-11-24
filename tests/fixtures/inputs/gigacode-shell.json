@@ -1,0 +1,1 @@
+{"session_id":"s-giga","cwd":"C:\\proj","hook_event_name":"PreToolUse","permission_mode":"default","tool_name":"run_shell_command","tool_input":{"command":"echo ok","description":"echo"},"tool_use_id":"toolu_g3","tool_call_id":"call_g3"}

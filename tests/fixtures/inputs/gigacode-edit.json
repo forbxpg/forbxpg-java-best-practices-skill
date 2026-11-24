@@ -1,0 +1,1 @@
+{"session_id":"s-giga","cwd":"C:\\proj","hook_event_name":"PreToolUse","permission_mode":"default","tool_name":"edit","tool_input":{"file_path":"C:\\proj\\src\\main\\java\\a\\Foo.java","old_string":"class Foo {}","new_string":"class Foo { int x; }"},"tool_use_id":"toolu_g2","tool_call_id":"call_g2"}
