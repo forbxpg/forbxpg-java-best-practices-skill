@@ -16,7 +16,7 @@ guide in English.
 
 ## 1. Hooks
 
-- [ ] 1.1 Short texts — verify: node --test tests/rules.test.mjs tests/post.test.mjs passes
+- [x] 1.1 Short texts — verify: node --test tests/rules.test.mjs tests/post.test.mjs passes
 
 Covers: R-SHORT-1, R-SHORT-2 · Test: scenario-first
 
@@ -26,7 +26,7 @@ Files: modify hooks/lib/rules.mjs, hooks/lib/roles.mjs; tests
    Run. Expected: FAIL.
 2. Add the texts. Commit `feat(hooks): short rule and role texts for the anchor`.
 
-- [ ] 1.2 Track violations — verify: node --test passes
+- [x] 1.2 Track violations — verify: node --test passes
 
 Covers: R-TRACK-1..3 · Test: scenario-first
 
@@ -40,7 +40,7 @@ Interfaces:
    front; a disabled id is not recorded; roles come newest first. Run. Expected: FAIL.
 2. Implement. Commit `feat(hooks): record the rules a session broke`.
 
-- [ ] 1.3 Adaptive anchor and recovery — verify: node --test passes and check-tokens exits 0
+- [x] 1.3 Adaptive anchor and recovery — verify: node --test passes and check-tokens exits 0
 
 Covers: R-ANCHOR-4..6, R-RECOVER-1..2, S-ANCHOR-4a..c, S-RECOVER-1a · Test: scenario-first
 
