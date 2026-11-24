@@ -1,0 +1,18 @@
+{
+  "name": "forbxpg-java",
+  "description": "forbxpg-java: Java / Spring Boot skills and hooks",
+  "owner": {
+    "name": "forbxpg"
+  },
+  "plugins": [
+    {
+      "name": "forbxpg-java",
+      "description": "Java / Spring Boot best practices for coding agents: nine skills plus hooks that block hard-rule violations before a write and report soft ones after it.",
+      "version": "0.1.0",
+      "source": "./",
+      "author": {
+        "name": "forbxpg"
+      }
+    }
+  ]
+}

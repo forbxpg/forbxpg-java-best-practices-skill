@@ -1,0 +1,33 @@
+{
+  "name": "forbxpg-java",
+  "description": "Java / Spring Boot best practices for coding agents: nine skills plus hooks that block hard-rule violations before a write and report soft ones after it.",
+  "version": "0.1.0",
+  "author": {
+    "name": "forbxpg"
+  },
+  "homepage": "https://github.com/forbxpg/forbxpg-java-best-practices-skill",
+  "repository": "https://github.com/forbxpg/forbxpg-java-best-practices-skill",
+  "license": "MIT",
+  "keywords": [
+    "java",
+    "spring-boot",
+    "lombok",
+    "maven",
+    "skills",
+    "hooks",
+    "best-practices"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks-codex.json",
+  "interface": {
+    "displayName": "forbxpg-java",
+    "shortDescription": "Java / Spring Boot best practices with blocking hooks",
+    "developerName": "forbxpg",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/forbxpg/forbxpg-java-best-practices-skill"
+  }
+}

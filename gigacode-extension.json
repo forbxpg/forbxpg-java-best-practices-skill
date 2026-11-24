@@ -1,0 +1,77 @@
+{
+  "name": "forbxpg-java",
+  "version": "0.1.0",
+  "contextFileName": [
+    "skills/using-java-best-practices/SKILL.md"
+  ],
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${extensionPath}${/}hooks${/}java-hooks.mjs\" SessionStart --harness gigacode",
+            "timeout": 10000
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${extensionPath}${/}hooks${/}java-hooks.mjs\" UserPromptSubmit --harness gigacode",
+            "timeout": 10000
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${extensionPath}${/}hooks${/}java-hooks.mjs\" PreToolUse --harness gigacode",
+            "timeout": 10000
+          }
+        ],
+        "matcher": "^(write_file|edit|replace|run_shell_command)$"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${extensionPath}${/}hooks${/}java-hooks.mjs\" PostToolUse --harness gigacode",
+            "timeout": 10000
+          }
+        ],
+        "matcher": "^(write_file|edit|replace|run_shell_command)$"
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${extensionPath}${/}hooks${/}java-hooks.mjs\" PostCompact --harness gigacode",
+            "timeout": 10000
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${extensionPath}${/}hooks${/}java-hooks.mjs\" Stop --harness gigacode",
+            "timeout": 200000
+          }
+        ]
+      }
+    ]
+  }
+}
