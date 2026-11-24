@@ -1,0 +1,42 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: ['20', '22']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: node --test
+      - run: node scripts/validate-skills.mjs
+      - run: node scripts/check-tokens.mjs
+
+  gates-fixture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: planted violations fail exactly the 13 rules
+        working-directory: tests/fixtures/gates-project
+        shell: bash
+        run: |
+          set +e
+          mvn -B -ntp test > build.log 2>&1
+          status=$?
+          set -e
+          grep -E "Tests run: 13, Failures: 13, Errors: 0" build.log
+          test "$status" -ne 0
