@@ -2,7 +2,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { normalizeTool } from './io.mjs';
-import { readState, removeState, addChangedFile, claimOnce } from './state.mjs';
+import { readState, removeState, addChangedFile, claimOnce, markViolated, markRoleSeen } from './state.mjs';
 import { readPassport } from './passport.mjs';
 import { findViolations, newViolations, formatViolation } from './rules.mjs';
 import { snapshotKey } from './pre.mjs';
@@ -46,11 +46,14 @@ export function handlePostToolUse(input, ctx) {
       if (before) {
         // Hard ones too: an edit that slipped past PreToolUse (or a Codex patch) still gets reported.
         const after = findViolations(text, { path: abs, passport: readPassport(ctx.projectDir) });
-        messages.push(...newViolations(before, after).filter((v) => !disabled.includes(v.id)).map(formatViolation));
+        const fresh = newViolations(before, after).filter((v) => !disabled.includes(v.id));
+        for (const v of fresh) markViolated(ctx.stateDir, v.id);
+        messages.push(...fresh.map(formatViolation));
       }
     }
     const role = detectRole(abs, text);
     if (role && claimOnce(ctx.stateDir, 'roles', role)) {
+      markRoleSeen(ctx.stateDir, role);
       messages.push(`[forbxpg-java] ${role} rules:\n${roleRules(role, readPassport(ctx.projectDir))}`);
     }
   }

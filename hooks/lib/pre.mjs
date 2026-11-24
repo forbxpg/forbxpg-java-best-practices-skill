@@ -2,7 +2,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { normalizeTool } from './io.mjs';
-import { writeState, sha1 } from './state.mjs';
+import { writeState, sha1, markViolated } from './state.mjs';
 import { readPassport } from './passport.mjs';
 import { findViolations, newViolations, formatViolation } from './rules.mjs';
 import { applyEdit } from './edit.mjs';
@@ -23,7 +23,11 @@ export function readText(path) {
 }
 
 const enabled = (ctx) => (v) => !(ctx.config.disable ?? []).includes(v.id);
-const block = (violations) => ({ exitCode: 2, stdout: '', stderr: `${violations.map(formatViolation).join('\n')}\n` });
+
+function block(violations, ctx) {
+  for (const v of violations) markViolated(ctx.stateDir, v.id);
+  return { exitCode: 2, stdout: '', stderr: `${violations.map(formatViolation).join('\n')}\n` };
+}
 
 function resultOf(tool, original) {
   if (tool.kind === 'write') return tool.content;
@@ -44,14 +48,14 @@ function handlePatch(input, tool, ctx) {
     }
   }
   const active = found.filter(enabled(ctx));
-  return active.length > 0 ? block(active) : {};
+  return active.length > 0 ? block(active, ctx) : {};
 }
 
 export function handlePreToolUse(input, ctx) {
   const tool = normalizeTool(input);
   if (tool.kind === 'shell') {
     const v = checkShell(tool.command);
-    return v && enabled(ctx)(v) ? block([v]) : {};
+    return v && enabled(ctx)(v) ? block([v], ctx) : {};
   }
   if (tool.kind === 'patch') return handlePatch(input, tool, ctx);
   if ((tool.kind !== 'write' && tool.kind !== 'edit') || !tool.filePath) return {};
@@ -60,12 +64,12 @@ export function handlePreToolUse(input, ctx) {
   const original = readText(abs);
   const result = resultOf(tool, original);
   const protectedFile = checkProtectedPath(abs, ctx.projectDir, { original, result });
-  if (protectedFile && enabled(ctx)(protectedFile)) return block([protectedFile]);
+  if (protectedFile && enabled(ctx)(protectedFile)) return block([protectedFile], ctx);
   if (!abs.endsWith('.java')) return {};
 
   const rulesCtx = { path: abs, passport: readPassport(ctx.projectDir) };
   const before = findViolations(original, rulesCtx);
   writeState(ctx.stateDir, snapshotKey(input, abs), before);
   const fresh = newViolations(before, findViolations(result, rulesCtx)).filter((v) => v.severity === 'hard').filter(enabled(ctx));
-  return fresh.length > 0 ? block(fresh) : {};
+  return fresh.length > 0 ? block(fresh, ctx) : {};
 }
