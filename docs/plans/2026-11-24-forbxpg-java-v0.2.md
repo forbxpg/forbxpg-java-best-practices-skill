@@ -75,7 +75,7 @@ Files: modify installer/project.mjs, tests/installer.test.mjs
    new ones. Run. Expected: FAIL.
 2. Implement. Commit `feat(installer): project install for Claude Code, update and force`.
 
-- [ ] 2.3 User scope through the agents' CLIs — verify: node --test tests/installer.test.mjs passes
+- [x] 2.3 User scope through the agents' CLIs — verify: node --test tests/installer.test.mjs passes
 
 Covers: — · Test: scenario-first
 

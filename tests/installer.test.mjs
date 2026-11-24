@@ -166,3 +166,36 @@ test('update replaces unchanged files, adds new ones and removes files the new v
   assert.ok(!existsSync(join(dir, '.gigacode/skills/java-verification')));
   assert.ok(result.removed.includes('.gigacode/skills/java-verification/SKILL.md'));
 });
+
+// ---- 2.3: user scope through the agents' CLIs ----
+import { installUser } from '../installer/user.mjs';
+
+function fakeRunner(status = 0) {
+  const calls = [];
+  const run = (cmd, args, opts = {}) => {
+    calls.push({ cmd, args, input: opts.input });
+    return { status, output: status === 0 ? 'ok' : 'boom: not logged in' };
+  };
+  return { run, calls };
+}
+
+test('user scope, GigaCode: link answers Y; uninstall removes the extension', () => {
+  const fake = fakeRunner();
+  installUser({ repoDir: REPO, agent: 'gigacode' }, fake.run);
+  assert.deepEqual(fake.calls[0], { cmd: 'gigacode', args: ['extensions', 'link', REPO], input: 'Y\n' });
+  installUser({ repoDir: REPO, agent: 'gigacode', uninstall: true }, fake.run);
+  assert.deepEqual(fake.calls[1].args, ['extensions', 'uninstall', 'forbxpg-java']);
+});
+
+test('user scope, Claude Code: marketplace add + plugin install; uninstall reverses both', () => {
+  const fake = fakeRunner();
+  installUser({ repoDir: REPO, agent: 'claude' }, fake.run);
+  assert.deepEqual(fake.calls.map((c) => c.args), [['plugin', 'marketplace', 'add', REPO], ['plugin', 'install', 'forbxpg-java@forbxpg-java']]);
+  installUser({ repoDir: REPO, agent: 'claude', uninstall: true }, fake.run);
+  assert.deepEqual(fake.calls.slice(2).map((c) => c.args), [['plugin', 'uninstall', 'forbxpg-java@forbxpg-java'], ['plugin', 'marketplace', 'remove', 'forbxpg-java']]);
+});
+
+test('user scope: a failing agent command is reported with its output', () => {
+  const fake = fakeRunner(1);
+  assert.throws(() => installUser({ repoDir: REPO, agent: 'claude' }, fake.run), /claude plugin marketplace add .* failed.*not logged in/s);
+});

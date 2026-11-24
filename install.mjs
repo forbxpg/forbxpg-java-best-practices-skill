@@ -3,6 +3,7 @@
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { installProject, uninstallProject } from './installer/project.mjs';
+import { installUser } from './installer/user.mjs';
 
 const REPO = dirname(fileURLToPath(import.meta.url));
 
@@ -17,6 +18,9 @@ Options
   --uninstall       remove exactly what the install wrote (from its receipt)
   --dry-run         print the plan, change nothing
   --help            this text
+
+User scope registers this folder with the agent's own CLI (gigacode extensions link;
+claude plugin marketplace add + plugin install); git pull in this folder updates it.
 
 Project scope copies skills and hooks into the repository (.gigacode/ or .claude/), merges
 the hooks into the agent's settings.json and writes install-receipt.json. Commit the result
@@ -52,7 +56,16 @@ function main() {
     console.log(HELP);
     return opts.help ? 0 : 2;
   }
-  if (opts.scope !== 'project') throw new Error(`--scope ${opts.scope} is not supported yet`);
+  if (opts.scope === 'user') {
+    if (opts.dryRun) {
+      console.log(`Would run the ${opts.agent} CLI to ${opts.uninstall ? 'remove' : 'register'} ${REPO}`);
+      return 0;
+    }
+    for (const line of installUser({ repoDir: REPO, agent: opts.agent, uninstall: opts.uninstall })) console.log(`  ran: ${line}`);
+    console.log(opts.uninstall ? 'Removed. Open a new session.' : 'Registered for all projects. Open a new agent session; update later with git pull in this folder.');
+    return 0;
+  }
+  if (opts.scope !== 'project') throw new Error(`--scope must be user or project, got ${opts.scope}`);
   if (opts.uninstall) {
     report(`Uninstalled forbxpg-java (${opts.agent}) from ${opts.project}`, uninstallProject({ projectDir: opts.project, agent: opts.agent }));
     return 0;
