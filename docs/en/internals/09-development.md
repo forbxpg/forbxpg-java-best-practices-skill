@@ -63,6 +63,14 @@ that every ArchUnit rule really catches its violation.
   `check-tokens`;
 - `gates-fixture` on Linux with JDK 21.
 
+## Releases
+
+Every release gets a tag `vX.Y.Z` on its `chore(release)` commit, pushed to the remote: the
+update notice compares installed versions with these tags. Bump the version in
+`.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `.codex-plugin/plugin.json`
+and `gigacode-extension.json` in the same commit. Pre-release tags (`v1.0.0-rc1`) are ignored
+by the notice.
+
 ## How to add a hard or soft rule
 
 1. A test in `rules.test.mjs`: an example that must be caught and a similar one that must
