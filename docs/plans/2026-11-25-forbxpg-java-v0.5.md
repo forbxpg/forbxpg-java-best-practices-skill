@@ -56,7 +56,7 @@ Interfaces:
 
 ## 2. Status line
 
-- [ ] 2.1 renderStatusLine — verify: node --test passes
+- [x] 2.1 renderStatusLine — verify: node --test passes
 
 Covers: S-SL-1a, S-SL-1b, S-SL-1c, S-SL-1d, S-SL-1f, R-SL-2, R-SL-3, R-SL-5, R-SL-10, R-SL-11 · Test: scenario-first
 
