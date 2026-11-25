@@ -8,16 +8,17 @@ import { fileURLToPath } from 'node:url';
 
 /** Cuts credentials out of a URL: all of user:password@ (or token@) for http(s), the :password for other schemes (ssh needs its user). */
 export function stripCredentials(url) {
-  return String(url).replace(/^([a-z][a-z0-9+.-]*:\/\/)([^@/]*)@/i, (m, scheme, user) => (/^https?:/i.test(scheme) ? scheme : `${scheme}${user.split(':')[0]}@`));
+  // Userinfo runs to the last @ before the path, so a password containing @ is cut whole.
+  return String(url).replace(/^([a-z][a-z0-9+.-]*:\/\/)([^/?#]*)@/i, (m, scheme, user) => (/^https?:/i.test(scheme) ? scheme : `${scheme}${user.split(':')[0]}@`));
 }
 
 // A receipt is committed to the project, so a teammate's PR can change it: only plain values pass.
 const VERSION = /^\d+\.\d+\.\d+$/;
 const AGENTS = new Set(['gigacode', 'claude']);
-// URL, scp-like user@host:path or an absolute local path; never an option (-x) or a helper transport (ext::, fd::).
+// URL, scp-like user@host:path or an absolute local path; never an option (-x) or a helper transport (ext::, fd::); :: inside an IPv6 host is fine.
 const REMOTE = /^(?:(?:https?|ssh|git|file):\/\/\S+|[\w.-]+@[\w.-]+:\S+|\/[^\r\n]*|[A-Za-z]:[\\/][^\r\n]*)$/i;
 // A host or user that starts with - would reach ssh as an option (-oProxyCommand=…).
-export const validRemote = (remote) => typeof remote === 'string' && REMOTE.test(remote) && !remote.includes('::') && !/(?:^|:\/\/|@)-/.test(remote);
+export const validRemote = (remote) => typeof remote === 'string' && REMOTE.test(remote) && !/^[\w+.-]+::/.test(remote) && !/(?:^|:\/\/|@)-/.test(remote);
 // Quotes, $, backticks, % and ! mean something to sh or cmd.exe even inside double quotes.
 const SAFE_PATH = /^[^"`$%!\r\n]+$/;
 

@@ -346,6 +346,17 @@ test('REV2-9: a repeated startup for the same session shows the notice once', ()
   assert.match(again, /^\[forbxpg-java\] Maven/, 'the passport still comes');
 });
 
+test('REV3-1: a password containing @ is cut whole', () => {
+  assert.equal(stripCredentials('ssh://git:pa@SECRET@host/r.git'), 'ssh://git@host/r.git');
+  assert.equal(stripCredentials('https://u:pa@ss@host/r.git'), 'https://host/r.git');
+  assert.equal(stripCredentials('https://host/r.git?ref=a@b'), 'https://host/r.git?ref=a@b', 'an @ after the host is not userinfo');
+});
+
+test('REV3-2: a bracketed IPv6 host is a valid remote; helper transports still are not', () => {
+  assert.ok(installSource(receiptDir({ source: { remote: 'https://[2001:db8::1]/r.git' } })));
+  assert.equal(installSource(receiptDir({ source: { remote: 'ext::sh' } })), null);
+});
+
 // ---- 3.1: install.mjs --check ----
 test('R-CONF-2: install.mjs --check prints the installed and the latest version of its clone', () => {
   const remote = remoteWithTags('v0.3.0', 'v0.4.0');
