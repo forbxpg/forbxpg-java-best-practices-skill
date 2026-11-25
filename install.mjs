@@ -112,6 +112,10 @@ function check() {
 function main() {
   const opts = parse(process.argv.slice(2));
   if (opts.check) return check();
+  if (opts.help) {
+    console.log(HELP);
+    return 0;
+  }
   if (opts.style && opts.preview) {
     console.log(previewStyle({ repoDir: REPO, color: process.stdout.isTTY && !process.env.NO_COLOR }));
     return 0;

@@ -38,8 +38,8 @@ const writeJson = (file, value) => writeFileSync(file, `${JSON.stringify(value, 
 /** The values forbxpg sets, for a clone at repoDir. */
 export function styleValues({ repoDir, homeDir, dark = false }) {
   const script = join(repoDir, 'hooks', 'statusline.mjs');
-  // cmd.exe expands %NAME% even inside quotes, and a quote would end the argument.
-  if (/["%]/.test(script)) throw new Error(`the clone path cannot be quoted for the status line command: ${script}`);
+  // cmd.exe expands %NAME% inside quotes and a quote ends the argument; sh expands $ and backticks.
+  if (/["%$`]/.test(script)) throw new Error(`the clone path cannot be quoted for the status line command: ${script}`);
   const asset = (...p) => readFileSync(join(repoDir, 'gigacode', ...p), 'utf8');
   return {
     // 30 s: the build age moves by minutes; context and model refresh on agent events anyway.
@@ -71,7 +71,8 @@ export function installStyle({ repoDir, homeDir, dark = false, force = false, dr
   const notes = a11y.disableLoadingPhrases === true || a11y.enableLoadingPhrases === false
     ? ['loading phrases are switched off in ui.accessibility, so the forbxpg phrases will not show']
     : [];
-  if (dryRun || written.length === 0) return { written, conflicts, replaced, notes };
+  const themesMissing = THEMES.some((t) => !existsSync(join(p.themes, t)));
+  if (dryRun || (written.length === 0 && !themesMissing)) return { written, conflicts, replaced, notes };
 
   // A re-install keeps the original value only for keys still holding ours; a key the user
   // changed since is their value now, and that is what uninstall must give back.
@@ -115,7 +116,9 @@ export function uninstallStyle({ homeDir, dryRun = false }) {
   if (!receipt.hadUi && Object.keys(ui).length === 0) delete next.ui;
   if (!receipt.hadSettings && Object.keys(next).length === 0) rmSync(p.settings, { force: true });
   else writeJson(p.settings, next);
-  for (const t of receipt.themes ?? []) rmSync(join(p.themes, t), { force: true });
+  // A kept ui.theme may point at one of our files (the user switched to the other forbxpg theme).
+  const keptTheme = kept.includes('theme') ? String(ui.theme ?? '') : '';
+  for (const t of receipt.themes ?? []) if (!keptTheme.endsWith(t)) rmSync(join(p.themes, t), { force: true });
   rmSync(p.receipt, { force: true });
   if (kept.length === 0) rmSync(p.backup, { force: true });
   return { restored, kept };

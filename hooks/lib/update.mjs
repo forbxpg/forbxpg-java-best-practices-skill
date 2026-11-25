@@ -1,5 +1,5 @@
 // Update notice: where forbxpg-java was installed from, and whether a newer release tag exists there.
-import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, statSync, openSync, closeSync, realpathSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, statSync, openSync, closeSync, realpathSync, renameSync } from 'node:fs';
 import { spawnSync, spawn as spawnAsync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
@@ -193,7 +193,10 @@ export function updateNotice({ hooksLibDir, cacheRoot, spawn, log } = {}) {
   try {
     const file = statusFile(cacheRoot, hooksLibDir);
     mkdirSync(dirname(file), { recursive: true });
-    writeFileSync(file, JSON.stringify({ installed: source.version, remote: source.remote, at: Date.now() }));
+    // Write then rename: the status line may read it at any moment.
+    const tmp = `${file}.${process.pid}.tmp`;
+    writeFileSync(tmp, JSON.stringify({ installed: source.version, remote: source.remote, at: Date.now() }));
+    renameSync(tmp, file);
   } catch (err) {
     log?.(err);
   }

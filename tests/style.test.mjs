@@ -35,7 +35,7 @@ test('R-PHRASE-1: 20 unique Russian loading phrases', () => {
 });
 
 // ---- 3.2: install.mjs --gigacode-style ----
-import { existsSync, writeFileSync, mkdirSync, cpSync } from 'node:fs';
+import { existsSync, writeFileSync, mkdirSync, cpSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { installStyle, uninstallStyle } from '../installer/style.mjs';
 import { tempProject } from './helpers.mjs';
@@ -231,4 +231,40 @@ test('CI-1: a Windows checkout with CRLF files still gives a clean banner and ph
   const ui = settingsOf(dir).ui;
   assert.equal(ui.customAsciiArt.large.includes('\r'), false);
   assert.equal(ui.customWittyPhrases.length, 20);
+});
+
+// ---- CodeRabbit on PR #14 ----
+test('CR-1: --gigacode-style --help prints help and installs nothing', () => {
+  const dir = home({});
+  const r = spawnSync(process.execPath, [join(REPO, 'install.mjs'), '--gigacode-style', '--help'], { encoding: 'utf8', env: { ...process.env, HOME: dir, USERPROFILE: dir } });
+  assert.equal(r.status, 0);
+  assert.match(r.stdout, /forbxpg-java installer/);
+  assert.deepEqual(settingsOf(dir), {});
+});
+
+test('CR-2: a clone path with $ or a backtick is refused (POSIX shells expand them)', () => {
+  for (const name of ['a$work', 'a`id`b']) {
+    const repo = join(tempProject(), name);
+    cpSync(join(REPO, 'gigacode'), join(repo, 'gigacode'), { recursive: true });
+    assert.throws(() => installStyle({ repoDir: repo, homeDir: home({}) }), /cannot be quoted/, name);
+  }
+});
+
+test('CR-3: uninstall keeps the theme file a kept ui.theme points at', () => {
+  const dir = home({});
+  installStyle({ repoDir: REPO, homeDir: dir });
+  const s = settingsOf(dir);
+  s.ui.theme = s.ui.theme.replace('forbxpg-light', 'forbxpg-dark');
+  writeFileSync(join(dir, '.gigacode', 'settings.json'), JSON.stringify(s));
+  uninstallStyle({ homeDir: dir });
+  assert.ok(existsSync(join(dir, '.gigacode', 'themes', 'forbxpg-dark.json')));
+  assert.equal(existsSync(join(dir, '.gigacode', 'themes', 'forbxpg-light.json')), false);
+});
+
+test('CR-4: a re-install restores a theme file that went missing', () => {
+  const dir = home({});
+  installStyle({ repoDir: REPO, homeDir: dir });
+  rmSync(join(dir, '.gigacode', 'themes', 'forbxpg-light.json'));
+  installStyle({ repoDir: REPO, homeDir: dir });
+  assert.ok(existsSync(join(dir, '.gigacode', 'themes', 'forbxpg-light.json')));
 });
