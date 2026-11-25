@@ -7,7 +7,8 @@ import { mavenCommand, runCompile as realRunCompile, parseCompileErrors } from '
 
 const COMPILE_TIMEOUT_MS = 180_000;
 const MAX_BLOCKS = 2;
-const UNVERIFIABLE = /offline mode|Could not resolve|Non-resolvable|Could not find artifact|is not recognized|command not found|ENOENT|EACCES|Permission denied/i;
+// Maven could not run the check at all (missing artifacts, no Maven, a module outside the root's reactor).
+const UNVERIFIABLE = /offline mode|Could not resolve|Non-resolvable|Could not find artifact|Could not find the selected project in the reactor|is not recognized|command not found|ENOENT|EACCES|Permission denied/i;
 
 const block = (reason) => ({ stdout: JSON.stringify({ decision: 'block', reason }) });
 const notice = (systemMessage) => ({ stdout: JSON.stringify({ systemMessage }) });
