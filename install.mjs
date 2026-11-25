@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { installProject, uninstallProject } from './installer/project.mjs';
 import { installUser } from './installer/user.mjs';
 import { join } from 'node:path';
-import { installSource, runCheck, checkRemote, newer } from './hooks/lib/update.mjs';
+import { installSource, runCheck, checkRemote, newer, pullCommand } from './hooks/lib/update.mjs';
 
 const REPO = dirname(fileURLToPath(import.meta.url));
 
@@ -69,7 +69,8 @@ function check() {
   }
   console.log(`installed ${source.version}, latest ${result.latest ?? 'none (no vX.Y.Z tags)'} (${source.remote})`);
   if (result.latest && newer(result.latest, source.version)) {
-    console.log(`update: git -C "${source.cloneDir}" pull --ff-only, then re-run install.mjs for project installs (--update)`);
+    const pull = pullCommand(source.cloneDir) ?? `git pull --ff-only in ${source.cloneDir}`;
+    console.log(`update: ${pull}, then re-run install.mjs for project installs (--update)`);
   }
   return 0;
 }

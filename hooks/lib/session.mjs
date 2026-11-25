@@ -59,10 +59,16 @@ export function handleSessionStart(input, ctx) {
   const text = router ? `${line}\n\n${router}\n` : `${line}\n`;
   // FORBXPG_JAVA_UPDATE_CHECK=0 switches the check off for a whole environment (CI, air-gapped machines, the test suite).
   // Resume and compaction continue a conversation that was already told.
-  const notice = ctx.config.updateCheck === false || process.env.FORBXPG_JAVA_UPDATE_CHECK === '0' || ['resume', 'compact'].includes(input.source)
+  // Once per session id: a repeated startup event does not tell the user again.
+  const notice = ctx.config.updateCheck === false || process.env.FORBXPG_JAVA_UPDATE_CHECK === '0' || ['resume', 'compact'].includes(input.source) || readState(ctx.stateDir, 'updateNoticed', false)
     ? null
-    : updateNotice({ hooksLibDir: ctx.hooksLibDir ?? HERE, cacheRoot: ctx.updateCacheRoot, spawn: ctx.spawn });
+    : updateNotice({ hooksLibDir: ctx.hooksLibDir ?? HERE, cacheRoot: ctx.updateCacheRoot, spawn: ctx.spawn, log: (err) => logError(ctx.stateDir, err) });
   if (!notice) return { stdout: text };
+  try {
+    writeState(ctx.stateDir, 'updateNoticed', true);
+  } catch (err) {
+    logError(ctx.stateDir, err);
+  }
   // JSON only when there is something for the user to see: the context and a visible system message.
   return {
     stdout: JSON.stringify({

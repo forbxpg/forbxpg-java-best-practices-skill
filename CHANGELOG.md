@@ -7,7 +7,11 @@
   version, agent and remote are trusted only in plain forms (no `--upload-pack=…`, `ext::`,
   no newlines), and `git ls-remote` gets `--` before the remote; passwords are cut from
   ssh and git URLs too; a background check that fails to start no longer crashes
-  SessionStart; the notice is not repeated on resume or after compaction.
+  SessionStart; the notice is not repeated on resume, after compaction or on a repeated
+  startup of the same session.
+- Second review round: an ssh host or user starting with `-` is refused; credentials in a
+  receipt remote are cut before git sees them; `--check` prints the pull command only for a
+  safe path; a background check that fails to start is written to `hook.log`.
 
 ## 0.4.0 — 2026-11-25
 

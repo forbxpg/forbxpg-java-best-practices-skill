@@ -249,6 +249,7 @@ test('REV-3: the update commands are runnable as written, in backticks', () => {
   const clone = JSON.parse(handleSessionStart({ source: 'startup' }, ctx).stdout).hookSpecificOutput.additionalContext;
   assert.ok(clone.includes('`git -C "' + dirname(dirname(lib)) + '" pull --ff-only`'));
   ctx.hooksLibDir = receiptDir({});
+  ctx.stateDir = sessionDir(ctx.projectDir, 'rev3-project');
   const project = JSON.parse(handleSessionStart({ source: 'startup' }, ctx).stdout).hookSpecificOutput.additionalContext;
   assert.ok(project.includes('`git -C "<clone>" pull --ff-only`'));
   assert.ok(project.includes('`node "<clone>/install.mjs" --agent gigacode --scope project --update`'));
@@ -293,6 +294,56 @@ test('REV-10: the notice comes with a new conversation, not on resume or after c
     const { ctx } = sessionCtx({ latest: '0.4.0' });
     assert.match(handleSessionStart({ source }, ctx).stdout, /Update available/, String(source));
   }
+});
+
+// ---- Review fixes, round 2 (Sourcery on PR #7) ----
+import { pullCommand, updateNotice } from '../hooks/lib/update.mjs';
+
+test('REV2-1: an ssh host or user that starts with - is refused (git would pass it to ssh as an option)', () => {
+  for (const remote of ['ssh://-oProxyCommand=touch%20pwned/r.git', 'ssh://git@-oProxyCommand=x/r.git', 'git@-oProxyCommand=x:r.git']) {
+    assert.equal(installSource(receiptDir({ source: { remote } })), null, remote);
+    assert.match(checkRemote(remote, { git: ['git-does-not-run'] }).error, /unsupported remote/, remote);
+  }
+});
+
+test('REV2-3: the project notice tells the model not to quote an unsafe clone path into the commands', () => {
+  const { ctx } = sessionCtx({ latest: '0.4.0' });
+  ctx.hooksLibDir = receiptDir({});
+  const context = JSON.parse(handleSessionStart({ source: 'startup' }, ctx).stdout).hookSpecificOutput.additionalContext;
+  assert.match(context, /If the path has/);
+});
+
+test('REV2-4: credentials in a receipt remote are cut before git, the cache or any output sees them', () => {
+  assert.equal(installSource(receiptDir({ source: { remote: 'https://u:secret@h/r.git' } })).remote, 'https://h/r.git');
+});
+
+test('REV2-5: a value with a trailing newline does not pass validation', () => {
+  assert.equal(installSource(receiptDir({ version: '0.3.0\n' })), null);
+  assert.equal(installSource(receiptDir({ source: { remote: '/srv/git/fj.git\n' } })), null);
+  assert.equal(pullCommand('/srv/fj\n'), null);
+});
+
+test('REV2-6/7: one pull command for the notice and --check; none for a path ending in a backslash or with shell syntax', () => {
+  assert.equal(pullCommand('C:\\Work\\fj'), 'git -C "C:\\Work\\fj" pull --ff-only');
+  assert.equal(pullCommand('C:\\Work\\fj\\'), null);
+  assert.equal(pullCommand('/a$(id)'), null);
+});
+
+test('REV2-8: a background check that fails to start is logged, still without failing the hook', () => {
+  const logged = [];
+  let child;
+  spawnCheck('https://h/r.git', () => { child = new EventEmitter(); child.unref = () => {}; return child; }, (err) => logged.push(err.message));
+  child.emit('error', new Error('spawn EACCES'));
+  spawnCheck('https://h/r.git', () => { throw new Error('spawn EPERM'); }, (err) => logged.push(err.message));
+  assert.deepEqual(logged, ['spawn EACCES', 'spawn EPERM']);
+});
+
+test('REV2-9: a repeated startup for the same session shows the notice once', () => {
+  const { ctx } = sessionCtx({ latest: '0.4.0' });
+  assert.match(handleSessionStart({ source: 'startup' }, ctx).stdout, /Update available/);
+  const again = handleSessionStart({ source: 'startup' }, ctx).stdout;
+  assert.doesNotMatch(again, /Update available/);
+  assert.match(again, /^\[forbxpg-java\] Maven/, 'the passport still comes');
 });
 
 // ---- 3.1: install.mjs --check ----
