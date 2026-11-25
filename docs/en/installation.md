@@ -60,8 +60,10 @@ must be refused with a `[forbxpg-java] J1:` message that names `@RequiredArgsCon
 Once a day, in the background, the session-start hook runs `git ls-remote --tags` against the
 remote the skill was installed from (the clone's `origin`, or `source.remote` in a project
 install's receipt) and caches the newest `vX.Y.Z` tag. When it is newer than the installed
-version, the next session starts with a one-line notice for you and, for the model, the
-update command: the model may run it only after your yes.
+version, in the next session the model starts its first reply with "forbxpg-java X is
+available (installed Y). Update?" and knows the update command: it may run it only after
+your yes. Claude Code also shows `forbxpg-java: update available` itself; GigaCode 26.11 does
+not display that line from a session-start hook, so there only the model tells you.
 
 - No network, a Bitbucket that asks for a password, or a timeout (5 s) → silence, retried a
   day later. Credentials are never stored: a password in the remote URL

@@ -387,6 +387,13 @@ test('ANY-2: outside a Maven project, no notice → nothing at all; other events
   }
 });
 
+test('TELL-1: GigaCode does not show a SessionStart systemMessage, so the model is told to say it first in its first reply', () => {
+  const { ctx } = sessionCtx({ latest: '0.4.0' });
+  const context = JSON.parse(handleSessionStart({ source: 'startup' }, ctx).stdout).hookSpecificOutput.additionalContext;
+  assert.match(context, /Start your first reply with one line for the user: "forbxpg-java 0\.4\.0 is available \(installed 0\.3\.0\)\. Update\?"/);
+  assert.doesNotMatch(context, /Tell the user once/);
+});
+
 // ---- 3.1: install.mjs --check ----
 test('R-CONF-2: install.mjs --check prints the installed and the latest version of its clone', () => {
   const remote = remoteWithTags('v0.3.0', 'v0.4.0');
