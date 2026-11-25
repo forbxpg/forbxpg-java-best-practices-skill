@@ -74,7 +74,7 @@ Files: modify hooks/lib/session.mjs, hooks/lib/config.mjs; tests
 
 ## 3. Manual check, releases, docs
 
-- [ ] 3.1 install.mjs --check — verify: node --test passes
+- [x] 3.1 install.mjs --check — verify: node --test passes
 
 Covers: — · Test: scenario-first
 

@@ -216,3 +216,17 @@ test('FORBXPG_JAVA_UPDATE_CHECK=0 switches the notice and the check off for the 
     process.env.FORBXPG_JAVA_UPDATE_CHECK = '1';
   }
 });
+
+// ---- 3.1: install.mjs --check ----
+test('R-CONF-2: install.mjs --check prints the installed and the latest version of its clone', () => {
+  const remote = remoteWithTags('v0.3.0', 'v0.4.0');
+  const clone = tempProject();
+  for (const part of ['install.mjs', 'installer', 'hooks', 'skills', 'gigacode-extension.json', '.claude-plugin']) cpSync(join(REPO, part), join(clone, part), { recursive: true });
+  writeFileSync(join(clone, '.claude-plugin/plugin.json'), JSON.stringify({ name: 'forbxpg-java', version: '0.3.0' }));
+  git(clone, 'init', '-q');
+  git(clone, 'remote', 'add', 'origin', remote);
+  const out = execFileSync(process.execPath, [join(clone, 'install.mjs'), '--check'], { encoding: 'utf8' });
+  assert.match(out, /installed 0\.3\.0/);
+  assert.match(out, /latest 0\.4\.0/);
+  assert.match(out, /pull --ff-only/);
+});
