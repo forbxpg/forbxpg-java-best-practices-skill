@@ -83,7 +83,7 @@ Files: modify install.mjs; tests/installer.test.mjs
 1. Test: `--check` against a temp remote prints installed and latest. Run. Expected: FAIL.
 2. Implement. Commit `feat(install): --check prints the installed and the latest version`.
 
-- [ ] 3.2 Tags and docs — verify: git ls-remote --tags origin lists v0.1.0, v0.2.0, v0.3.0
+- [x] 3.2 Tags and docs — verify: git ls-remote --tags origin lists v0.1.0, v0.2.0, v0.3.0
 
 Covers: — · Test: none: release tags and documentation
 
