@@ -1,7 +1,7 @@
 // Stop: warn once when the context fills up; compile what the session changed and block on its own errors.
 import { existsSync, statSync, realpathSync } from 'node:fs';
 import { dirname, join, relative, resolve, normalize } from 'node:path';
-import { readState, writeState, sha1, changedFiles } from './state.mjs';
+import { readState, writeState, sha1, changedFiles, logError } from './state.mjs';
 import { mavenRootAbove } from './io.mjs';
 import { mavenCommand, runCompile as realRunCompile, parseCompileErrors } from './maven.mjs';
 
@@ -76,7 +76,12 @@ export async function handleStop(input, ctx, runCompile = realRunCompile) {
   }
   // For the status line: what the last compile of this session showed.
   const result = own.length > 0 ? 'fail' : timedOut || unverifiable || foreign ? 'unverified' : 'ok';
-  writeState(ctx.stateDir, 'lastBuild', { result, at: Date.now() });
+  try {
+    writeState(ctx.stateDir, 'lastBuild', { result, at: Date.now() });
+  } catch (err) {
+    // Only the status line needs it; the block below must still reach the model.
+    logError(ctx.stateDir, err);
+  }
   if (timedOut) return notice('[forbxpg-java] Could not verify the build: the compile timed out.');
   if (own.length === 0 && !unverifiable && !foreign) {
     writeState(ctx.stateDir, 'lastOkFingerprint', fingerprint);

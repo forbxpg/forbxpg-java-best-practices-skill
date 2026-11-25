@@ -63,8 +63,10 @@ export function installStyle({ repoDir, homeDir, dark = false, force = false, dr
   const written = KEYS.filter((k) => !isDeepStrictEqual(ui[k], desired[k]));
   if (dryRun || written.length === 0) return { written, conflicts };
 
-  // A re-install keeps the values from before the first install.
-  const previous = receipt?.previous ?? Object.fromEntries(KEYS.map((k) => [k, k in ui ? { present: true, value: ui[k] } : { present: false }]));
+  // A re-install keeps the original value only for keys still holding ours; a key the user
+  // changed since is their value now, and that is what uninstall must give back.
+  const current = (k) => (k in ui ? { present: true, value: ui[k] } : { present: false });
+  const previous = Object.fromEntries(KEYS.map((k) => [k, receipt?.previous?.[k] && ours(k) ? receipt.previous[k] : current(k)]));
   mkdirSync(p.themes, { recursive: true });
   if (settings && !existsSync(p.backup)) copyFileSync(p.settings, p.backup);
   for (const t of THEMES) copyFileSync(join(repoDir, 'gigacode', 'themes', t), join(p.themes, t));

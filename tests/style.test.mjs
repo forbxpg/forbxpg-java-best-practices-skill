@@ -162,3 +162,14 @@ test('R-STYLE-6 / S-STYLE-1c: --preview prints three status lines and the banner
   assert.equal(readFileSync(join(dir, '.gigacode', 'settings.json'), 'utf8'), before);
   assert.deepEqual(readdirSync(join(dir, '.gigacode')), ['settings.json']);
 });
+
+test('FIX-1: a value the user set after the install survives --force and uninstall', () => {
+  const dir = home({ ui: { theme: 'Orig' } });
+  installStyle({ repoDir: REPO, homeDir: dir, force: true });
+  const s = settingsOf(dir);
+  s.ui.theme = 'UserLater';
+  writeFileSync(join(dir, '.gigacode', 'settings.json'), JSON.stringify(s));
+  installStyle({ repoDir: REPO, homeDir: dir, force: true });
+  uninstallStyle({ homeDir: dir });
+  assert.equal(settingsOf(dir).ui.theme, 'UserLater');
+});

@@ -2,11 +2,15 @@
 import { readdirSync, statSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { mavenRootAbove } from './io.mjs';
+import { mavenRootAbove, onlyChildProject } from './io.mjs';
 import { projectCacheDir, sessionDir, readState, recentViolations } from './state.mjs';
 import { readPassport } from './passport.mjs';
 import { loadConfig } from './config.mjs';
-import { newer, statusFile } from './update.mjs';
+import { newer, statusFile, readCache } from './update.mjs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
 
 const SEP = ' · ';
 const ANSI = { red: 31, green: 32, yellow: 33 };
@@ -95,12 +99,21 @@ const readJson = (path) => {
 };
 
 /** data for renderStatusLine plus warnAt from the project's settings. */
-export function readStatusData(input, { cacheRoot, home = homedir() } = {}) {
+/** This install's version (live from its plugin.json) and the newest tag the background check cached. */
+function updateStatus(cacheRoot, hooksLibDir) {
+  const status = readJson(statusFile(cacheRoot, hooksLibDir));
+  if (!status?.remote) return null;
+  const installed = readJson(resolve(hooksLibDir, '..', '..', '.claude-plugin', 'plugin.json'))?.version ?? status.installed;
+  return { installed, latest: readCache(status.remote, cacheRoot ? { cacheRoot } : {})?.latest ?? null };
+}
+
+export function readStatusData(input, { cacheRoot, home = homedir(), hooksLibDir = HERE } = {}) {
   const cwd = input?.workspace?.current_dir ?? input?.cwd ?? process.cwd();
-  const root = mavenRootAbove(cwd);
+  // Same rule as the hooks: the pom chain above, else the only Maven project below.
+  const root = mavenRootAbove(cwd) ?? onlyChildProject(cwd);
   const config = loadConfig(root ?? cwd, home);
   const updateOn = config.updateCheck !== false && process.env.FORBXPG_JAVA_UPDATE_CHECK !== '0';
-  const data = { passport: null, build: null, rules: [], compactions: 0, update: updateOn ? readJson(statusFile(cacheRoot)) : null };
+  const data = { passport: null, build: null, rules: [], compactions: 0, update: updateOn ? updateStatus(cacheRoot, hooksLibDir) : null };
   if (!root) return { data, warnAt: config.contextWarnAt };
   data.passport = readPassport(root);
   const session = sessionFolder(root, input?.session_id);

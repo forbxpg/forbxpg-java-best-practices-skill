@@ -65,14 +65,14 @@ function cloneWithCache(version, latest) {
 test('R-SL-7: the update check writes the status file the status line reads', () => {
   const { lib, cacheRoot } = cloneWithCache('0.4.3', '0.4.4');
   updateNotice({ hooksLibDir: lib, cacheRoot, spawn: () => ({ unref() {} }) });
-  const status = JSON.parse(readFileSync(statusFile(cacheRoot), 'utf8'));
+  const status = JSON.parse(readFileSync(statusFile(cacheRoot, lib), 'utf8'));
   assert.equal(status.installed, '0.4.3');
-  assert.equal(status.latest, '0.4.4');
+  assert.equal(status.remote, 'https://h/fj.git');
   assert.ok(Number.isFinite(status.at));
 
   const none = tempProject();
   updateNotice({ hooksLibDir: join(none, 'hooks', 'lib'), cacheRoot: none, spawn: () => ({ unref() {} }) });
-  assert.equal(existsSync(statusFile(none)), false, 'no install source → no status file');
+  assert.equal(existsSync(statusFile(none, join(none, 'hooks', 'lib'))), false, 'no install source → no status file');
 });
 
 // ---- 2.1: renderStatusLine ----
@@ -191,15 +191,59 @@ test('Review Focus 2: hundreds of rule markers stay fast', () => {
 });
 
 test('R-SL-7: with the update check switched off the status line shows no update', () => {
-  const cacheRoot = tempProject({ 'status.json': JSON.stringify({ installed: '0.4.3', latest: '0.9.0', at: Date.now() }) });
+  const { lib, cacheRoot } = cloneWithCache('0.4.3', '0.9.0');
+  updateNotice({ hooksLibDir: lib, cacheRoot, spawn: () => ({ unref() {} }) });
   const inp = { workspace: { current_dir: tempProject() } };
   const prev = process.env.FORBXPG_JAVA_UPDATE_CHECK;
   try {
     process.env.FORBXPG_JAVA_UPDATE_CHECK = '1';
-    assert.equal(readStatusData(inp, { cacheRoot }).data.update.latest, '0.9.0');
+    assert.equal(readStatusData(inp, { cacheRoot, hooksLibDir: lib }).data.update.latest, '0.9.0');
     process.env.FORBXPG_JAVA_UPDATE_CHECK = '0';
-    assert.equal(readStatusData(inp, { cacheRoot }).data.update, null);
+    assert.equal(readStatusData(inp, { cacheRoot, hooksLibDir: lib }).data.update, null);
   } finally {
     process.env.FORBXPG_JAVA_UPDATE_CHECK = prev;
   }
+});
+
+// ---- Final review fixes ----
+test('FIX-2: a session opened above the only Maven project still shows its state', () => {
+  const top = tempProject({ 'backend/pom.xml': BOOT4_POM });
+  const s = sessionDir(join(top, 'backend'), uniqueSession('above'));
+  writeState(s, 'lastBuild', { result: 'ok', at: Date.now() });
+  const { line } = runLine(JSON.stringify({ workspace: { current_dir: top }, model: { display_name: 'M' } }));
+  assert.match(line, /^M · Java 21 · Boot 4\.1 · build ok <1m$/);
+});
+
+test('FIX-3: an error while reading state still prints the model; null stdin prints ?', () => {
+  const dir = tempProject({ 'pom.xml/x': '' });
+  const { line, status } = runLine(JSON.stringify({ workspace: { current_dir: dir }, model: { display_name: 'M' }, context_window: { used_percentage: 5 } }));
+  assert.equal(status, 0);
+  assert.match(line, /^M · ctx/);
+  assert.equal(runLine('null').line, '?');
+});
+
+test('FIX-4: the update segment belongs to this install and follows the check cache', () => {
+  const a = cloneWithCache('0.4.3', '0.4.4');
+  const b = cloneWithCache('0.5.0', null);
+  const cacheRoot = a.cacheRoot;
+  updateNotice({ hooksLibDir: a.lib, cacheRoot, spawn: () => ({ unref() {} }) });
+  updateNotice({ hooksLibDir: b.lib, cacheRoot, spawn: () => ({ unref() {} }) });
+  const inp = { workspace: { current_dir: tempProject() } };
+  const prev = process.env.FORBXPG_JAVA_UPDATE_CHECK;
+  process.env.FORBXPG_JAVA_UPDATE_CHECK = '1';
+  try {
+    assert.deepEqual(readStatusData(inp, { cacheRoot, hooksLibDir: a.lib }).data.update, { installed: '0.4.3', latest: '0.4.4' });
+    assert.equal(readStatusData(inp, { cacheRoot, hooksLibDir: b.lib }).data.update.installed, '0.5.0');
+    writeFileSync(cacheFile('https://h/fj.git', { cacheRoot }), JSON.stringify({ checkedAt: Date.now(), latest: '0.4.5', error: null }));
+    assert.equal(readStatusData(inp, { cacheRoot, hooksLibDir: a.lib }).data.update.latest, '0.4.5', 'no new session needed');
+  } finally {
+    process.env.FORBXPG_JAVA_UPDATE_CHECK = prev;
+  }
+});
+
+test('FIX-6: a failing status write never costs the compile-error block', async () => {
+  const { dir, ctx } = stopSetup();
+  mkdirSync(join(ctx.stateDir, 'lastBuild.json'), { recursive: true });
+  const r = await handleStop({}, ctx, compile({ output: `[ERROR] ${join(dir, FOO)}:[3,5] cannot find symbol` }));
+  assert.equal(JSON.parse(r.stdout).decision, 'block');
 });
