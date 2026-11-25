@@ -1,0 +1,6 @@
+   ( (        forbxpg-java
+    ) )       Java . Spring Boot
+  ........    rules in skills, guarded by hooks
+  |      |]
+  \      /
+   `----'

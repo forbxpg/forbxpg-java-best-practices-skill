@@ -1,0 +1,19 @@
+{
+  "name": "forbxpg Light",
+  "type": "custom",
+  "Background": "#FBFAF7",
+  "Foreground": "#1F2328",
+  "LightBlue": "#5B9BD5",
+  "AccentBlue": "#1F6FB2",
+  "AccentPurple": "#7B4FBF",
+  "AccentCyan": "#0E7C86",
+  "AccentGreen": "#3D8B37",
+  "AccentYellow": "#A86F00",
+  "AccentRed": "#C62828",
+  "Comment": "#6E7781",
+  "Gray": "#57606A",
+  "DiffAdded": "#3D8B37",
+  "DiffRemoved": "#C62828",
+  "DiffModified": "#1F6FB2",
+  "GradientColors": ["#E76F00", "#6DB33F"]
+}

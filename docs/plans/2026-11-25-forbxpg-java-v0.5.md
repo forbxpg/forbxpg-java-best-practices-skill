@@ -92,7 +92,7 @@ Interfaces:
 
 ## 3. Look and install
 
-- [ ] 3.1 Theme, banner and phrases — verify: node --test passes
+- [x] 3.1 Theme, banner and phrases — verify: node --test passes
 
 Covers: R-THEME-1, R-BANNER-1, R-PHRASE-1 · Test: scenario-first
 
