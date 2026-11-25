@@ -13,6 +13,7 @@ export const LAYOUTS = {
   gigacode: {
     root: '.gigacode',
     skills: '.gigacode/skills',
+    commands: '.gigacode/commands',
     hooks: '.gigacode/forbxpg-java/hooks',
     settings: '.gigacode/settings.json',
     receipt: '.gigacode/forbxpg-java/install-receipt.json',
@@ -23,6 +24,7 @@ export const LAYOUTS = {
   claude: {
     root: '.claude',
     skills: '.claude/skills',
+    commands: '.claude/commands',
     hooks: '.claude/forbxpg-java/hooks',
     settings: '.claude/settings.json',
     receipt: '.claude/forbxpg-java/install-receipt.json',
@@ -57,6 +59,7 @@ function listFiles(dir) {
 function sourceFiles(repoDir, layout) {
   const files = [];
   for (const rel of listFiles(join(repoDir, 'skills'))) files.push({ from: join(repoDir, 'skills', rel), to: `${layout.skills}/${rel}` });
+  for (const rel of listFiles(join(repoDir, 'commands'))) files.push({ from: join(repoDir, 'commands', rel), to: `${layout.commands}/${rel}` });
   files.push({ from: join(repoDir, 'hooks', 'java-hooks.mjs'), to: `${layout.hooks}/java-hooks.mjs` });
   for (const rel of listFiles(join(repoDir, 'hooks', 'lib'))) files.push({ from: join(repoDir, 'hooks', 'lib', rel), to: `${layout.hooks}/lib/${rel}` });
   return files;

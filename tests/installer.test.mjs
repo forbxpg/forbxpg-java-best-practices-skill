@@ -304,3 +304,13 @@ test('user scope: a failing agent command is reported with its output', () => {
   const fake = fakeRunner(1);
   assert.throws(() => installUser({ repoDir: REPO, agent: 'claude' }, fake.run), /claude plugin marketplace add .* failed.*not logged in/s);
 });
+
+test('R-CMD-3: a project install copies the /java commands and uninstall removes them', () => {
+  for (const [agent, root] of [['gigacode', '.gigacode'], ['claude', '.claude']]) {
+    const dir = tempProject({ 'pom.xml': BOOT4_POM });
+    installProject({ repoDir: REPO, projectDir: dir, agent });
+    for (const name of ['review', 'verify', 'update']) assert.ok(existsSync(join(dir, root, 'commands', 'java', `${name}.md`)), `${agent} ${name}`);
+    uninstallProject({ projectDir: dir, agent });
+    assert.equal(existsSync(join(dir, root, 'commands', 'java', 'review.md')), false, agent);
+  }
+});

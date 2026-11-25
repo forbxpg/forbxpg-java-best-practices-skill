@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- GigaCode look, opt-in: `node install.mjs --gigacode-style` sets a status line (model,
+  branch, context bar with `!`/`!!`, Java and Boot, last build, rules broken this session,
+  compactions, newer forbxpg-java), the forbxpg Light/Dark theme, a banner and Java/Spring
+  loading phrases. `--preview` shows it first, `--dark`, `--force`, `--dry-run`, and
+  `--uninstall` restores the previous settings.
+- `/java:review`, `/java:verify`, `/java:update` commands (also copied by project installs).
+- Hooks record the last build result, a compaction counter and the update status for the
+  status line.
+
 ## 0.4.3 — 2026-11-25
 
 - Update notice: the model now starts its first reply with "forbxpg-java X is available

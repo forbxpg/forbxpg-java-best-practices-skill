@@ -79,6 +79,43 @@ not display that line from a session-start hook, so there only the model tells y
 - A mirror on an internal Bitbucket must mirror the tags too, otherwise there is nothing to
   compare with.
 
+## The GigaCode look (optional)
+
+```bash
+node install.mjs --gigacode-style --preview   # see it, change nothing
+node install.mjs --gigacode-style             # install (--dark for the dark theme)
+node install.mjs --gigacode-style --uninstall # put everything back
+```
+
+The flag writes six `ui.*` keys into `~/.gigacode/settings.json` and copies the themes to
+`~/.gigacode/themes/`; the other keys of the file are left alone.
+
+- **Status line:**
+  `DeepSeek V4.1 · main · ctx [######----] 62% · Java 21 · Boot 4.1 · build ok 3m · rules J1 W2 · compact x2 · fj 0.4.3 (0.4.4 available)`.
+  `!` marks context from `contextWarnAt` (70%), `!!` from 85% (GigaCode's auto-compaction);
+  `build ok/FAIL/?` is the last Stop check; `rules` are the rules broken in the session;
+  `compact xN` counts compactions; `fj …` appears when a newer version exists. Empty parts
+  are hidden. The line only reads the hooks' files (no git, no Maven) and refreshes on agent
+  events and every 30 s; one run takes about 0.3 s on Windows. GigaCode 26.11 does not pass
+  the terminal width to the command: it cuts a long line itself, on the right, where the
+  least important parts are. `NO_COLOR` turns colour off.
+- **Theme** `forbxpg Light` / `forbxpg Dark`, a **banner** with a logo, **loading phrases**
+  about Java and Spring.
+- If your settings already set a theme or a status line, the installer names those keys and
+  writes nothing; `--force` replaces them, and the previous values are kept in
+  `~/.gigacode/forbxpg-java-style.json` and restored by `--uninstall`. A copy
+  `settings.json.forbxpg-java.bak` is made before the first write.
+- A `settings.json` with comments (not JSON) is not edited.
+- If loading phrases are switched off in `ui.accessibility`, the installer says so: the
+  forbxpg phrases will not show then. A narrow window shows `forbxpg-java` instead of the logo.
+
+## `/java:*` commands
+
+`/java:review` reviews the current diff against the skill's rules, `/java:verify` compiles
+and tests with the build output as proof, `/java:update` checks for an update and offers it.
+The commands live in `commands/java/`; a project install copies them to
+`.gigacode/commands/java/` (`.claude/commands/java/`).
+
 ## Project install (team setup)
 
 `node install.mjs --agent gigacode|claude --scope project --project <repo>` copies the skills

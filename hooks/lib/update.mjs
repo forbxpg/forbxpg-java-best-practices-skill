@@ -1,5 +1,5 @@
 // Update notice: where forbxpg-java was installed from, and whether a newer release tag exists there.
-import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, statSync, openSync, closeSync, realpathSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, statSync, openSync, closeSync, realpathSync, renameSync } from 'node:fs';
 import { spawnSync, spawn as spawnAsync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
@@ -100,6 +100,12 @@ export function cacheFile(remote, { cacheRoot = DEFAULT_CACHE_ROOT() } = {}) {
   return join(cacheRoot, `${createHash('sha1').update(remote).digest('hex').slice(0, 16)}.json`);
 }
 
+/** Per install (its hooks/lib folder): { installed, remote, at } for the status line, next to the check cache. */
+export function statusFile(cacheRoot, hooksLibDir) {
+  const key = createHash('sha1').update(resolve(hooksLibDir)).digest('hex').slice(0, 12);
+  return join(cacheRoot ?? DEFAULT_CACHE_ROOT(), `status-${key}.json`);
+}
+
 export function readCache(remote, opts = {}) {
   return readJson(cacheFile(remote, opts));
 }
@@ -184,6 +190,16 @@ export function updateNotice({ hooksLibDir, cacheRoot, spawn, log } = {}) {
   if (!source) return null;
   const cache = readCache(source.remote, cacheRoot ? { cacheRoot } : {});
   if (isStale(cache)) spawnCheck(source.remote, spawn, log);
+  try {
+    const file = statusFile(cacheRoot, hooksLibDir);
+    mkdirSync(dirname(file), { recursive: true });
+    // Write then rename: the status line may read it at any moment.
+    const tmp = `${file}.${process.pid}.tmp`;
+    writeFileSync(tmp, JSON.stringify({ installed: source.version, remote: source.remote, at: Date.now() }));
+    renameSync(tmp, file);
+  } catch (err) {
+    log?.(err);
+  }
   if (!cache?.latest || !newer(cache.latest, source.version)) return null;
   const versions = `${source.version} → ${cache.latest}`;
   let action;

@@ -78,6 +78,43 @@ npx skills add forbxpg/forbxpg-java-best-practices-skill
 - Установки из маркетплейса Claude Code и из zip не проверяются.
 - Зеркало на внутреннем Bitbucket должно зеркалировать и теги, иначе сравнивать не с чем.
 
+## Внешний вид GigaCode (по желанию)
+
+```bash
+node install.mjs --gigacode-style --preview   # посмотреть, ничего не меняя
+node install.mjs --gigacode-style             # поставить (--dark — тёмная тема)
+node install.mjs --gigacode-style --uninstall # вернуть как было
+```
+
+Флаг пишет в `~/.gigacode/settings.json` шесть ключей `ui.*` и копирует темы в
+`~/.gigacode/themes/`; остальные ключи файла не трогаются.
+
+- **Строка состояния:**
+  `DeepSeek V4.1 · main · ctx [######----] 62% · Java 21 · Boot 4.1 · build ok 3m · rules J1 W2 · compact x2 · fj 0.4.3 (0.4.4 available)`.
+  `!` — контекст с `contextWarnAt` (70%), `!!` — с 85% (автосжатие GigaCode);
+  `build ok/FAIL/?` — последняя проверка Stop; `rules` — правила, нарушенные в сессии;
+  `compact xN` — сколько раз сжимался контекст; `fj …` — есть версия новее. Пустые части
+  не показываются. Строка только читает файлы хуков (git и Maven не запускает) и
+  обновляется по событиям агента и раз в 30 с; на Windows один запуск — около 0,3 с.
+  GigaCode 26.11 не сообщает команде ширину терминала: длинную строку он обрезает сам,
+  справа, где самые неважные части. Цвет выключается `NO_COLOR`.
+- **Тема** `forbxpg Light` / `forbxpg Dark`, **баннер** с логотипом, **фразы загрузки** про
+  Java и Spring.
+- Если в настройках уже есть своя тема или строка, установщик называет эти ключи и ничего
+  не пишет; `--force` заменяет их, а прежние значения сохраняются в
+  `~/.gigacode/forbxpg-java-style.json` и возвращаются при `--uninstall`. Перед первой
+  записью делается копия `settings.json.forbxpg-java.bak`.
+- `settings.json` с комментариями (не JSON) не правится.
+- Если фразы загрузки выключены в `ui.accessibility`, установщик об этом напишет: forbxpg-фразы
+  тогда не появятся. В узком окне вместо логотипа — только надпись `forbxpg-java`.
+
+## Команды `/java:*`
+
+`/java:review` — ревью текущего diff по правилам скилла, `/java:verify` — компиляция и тесты
+с выводом сборки, `/java:update` — проверить обновление и предложить его. Команды лежат в
+`commands/java/`; установка в проект копирует их в `.gigacode/commands/java/`
+(`.claude/commands/java/`).
+
 ## Установка в проект (для команды)
 
 `node install.mjs --agent gigacode|claude --scope project --project <репо>` копирует скиллы

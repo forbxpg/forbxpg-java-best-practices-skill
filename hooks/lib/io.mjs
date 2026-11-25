@@ -30,7 +30,7 @@ function topPomDir(start) {
   }
 }
 
-function onlyChildProject(dir) {
+export function onlyChildProject(dir) {
   let entries;
   try {
     entries = readdirSync(dir, { withFileTypes: true });

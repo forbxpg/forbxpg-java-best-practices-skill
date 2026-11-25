@@ -32,6 +32,8 @@ export function compactedGeneration(value) {
 export function noteCompaction(stateDir) {
   const next = compactedGeneration(readState(stateDir, 'compacted', 0)) + 1;
   writeState(stateDir, 'compacted', next);
+  // Never reset: the status line shows how often this session lost its older context.
+  writeState(stateDir, 'compactions', Number(readState(stateDir, 'compactions', 0)) + 1);
   return next;
 }
 
