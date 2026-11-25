@@ -3,6 +3,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSy
 import { createHash } from 'node:crypto';
 import { join, dirname, relative } from 'node:path';
 import { parseSettings, formatSettings, mergeHooks, removeHooks, withoutAgentKeys } from './settings.mjs';
+import { originOf } from '../hooks/lib/update.mjs';
 
 const sha256 = (text) => createHash('sha256').update(text).digest('hex');
 const posix = (p) => p.replace(/\\/g, '/');
@@ -155,6 +156,8 @@ export function installProject({ repoDir, projectDir, agent, dryRun = false, for
     agent,
     files: receiptFiles,
     createdRoot,
+    // Where to look for newer releases (update notice); never the clone's local path.
+    source: { remote: originOf(repoDir) },
     settingsBefore: previous ? previous.settingsBefore : settingsText,
     contextBefore,
   };

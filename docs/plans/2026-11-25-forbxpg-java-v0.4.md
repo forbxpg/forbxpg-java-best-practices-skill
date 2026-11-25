@@ -28,7 +28,7 @@ appends the notice and, when the cache is stale, spawns `hooks/update-check.mjs`
 
 ## 1. Source and versions
 
-- [ ] 1.1 Install source and version comparison — verify: node --test tests/update.test.mjs passes
+- [x] 1.1 Install source and version comparison — verify: node --test tests/update.test.mjs passes
 
 Covers: S-NOTE-3c · Test: scenario-first
 
