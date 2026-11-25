@@ -1,5 +1,12 @@
 // Status line for GigaCode: one line from the harness input and the state the hooks keep.
-import { newer } from './update.mjs';
+import { readdirSync, statSync, readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+import { mavenRootAbove } from './io.mjs';
+import { projectCacheDir, sessionDir, readState, recentViolations } from './state.mjs';
+import { readPassport } from './passport.mjs';
+import { loadConfig } from './config.mjs';
+import { newer, statusFile } from './update.mjs';
 
 const SEP = ' · ';
 const ANSI = { red: 31, green: 32, yellow: 33 };
@@ -58,4 +65,49 @@ export function renderStatusLine(input, data, { color = false, width, warnAt = 0
     }
   }
   return shown.map(([, s]) => s.colored).join(SEP);
+}
+
+// ---- Reading what the hooks left behind (files only, no processes) ----
+
+/** The session folder named by stdin, else the most recently changed one of the project. */
+function sessionFolder(root, sessionId) {
+  if (sessionId) return sessionDir(root, sessionId);
+  const base = projectCacheDir(root);
+  let best = null;
+  try {
+    for (const entry of readdirSync(base, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const mtime = statSync(join(base, entry.name)).mtimeMs;
+      if (!best || mtime > best.mtime) best = { dir: join(base, entry.name), mtime };
+    }
+  } catch {
+    // No state for this project yet.
+  }
+  return best?.dir ?? null;
+}
+
+const readJson = (path) => {
+  try {
+    return JSON.parse(readFileSync(path, 'utf8'));
+  } catch {
+    return null;
+  }
+};
+
+/** data for renderStatusLine plus warnAt from the project's settings. */
+export function readStatusData(input, { cacheRoot, home = homedir() } = {}) {
+  const cwd = input?.workspace?.current_dir ?? input?.cwd ?? process.cwd();
+  const root = mavenRootAbove(cwd);
+  const config = loadConfig(root ?? cwd, home);
+  const updateOn = config.updateCheck !== false && process.env.FORBXPG_JAVA_UPDATE_CHECK !== '0';
+  const data = { passport: null, build: null, rules: [], compactions: 0, update: updateOn ? readJson(statusFile(cacheRoot)) : null };
+  if (!root) return { data, warnAt: config.contextWarnAt };
+  data.passport = readPassport(root);
+  const session = sessionFolder(root, input?.session_id);
+  if (session) {
+    data.build = readState(session, 'lastBuild', null);
+    data.rules = recentViolations(session).filter((id) => !config.disable.includes(id));
+    data.compactions = Number(readState(session, 'compactions', 0)) || 0;
+  }
+  return { data, warnAt: config.contextWarnAt };
 }

@@ -74,7 +74,7 @@ Interfaces:
    double ` ·  · `. Run. Expected: FAIL.
 2. Implement. Commit `feat(statusline): render the forbxpg status line`.
 
-- [ ] 2.2 Status line command — verify: node --test passes
+- [x] 2.2 Status line command — verify: node --test passes
 
 Covers: R-SL-1, R-SL-8, R-SL-9, S-SL-1e · Test: scenario-first
 

@@ -76,7 +76,7 @@ test('R-SL-7: the update check writes the status file the status line reads', ()
 });
 
 // ---- 2.1: renderStatusLine ----
-import { renderStatusLine } from '../hooks/lib/statusline.mjs';
+import { renderStatusLine, readStatusData } from '../hooks/lib/statusline.mjs';
 
 const NOW = 1_800_000_000_000;
 const input = (pct, extra = {}) => ({ model: { display_name: 'DeepSeek V4.1' }, git: { branch: 'main' }, context_window: { used_percentage: pct }, ...extra });
@@ -136,4 +136,70 @@ test('R-SL-2: missing fields leave no empty separators', () => {
   const line = render({}, { passport: null, build: null, rules: [], compactions: 0, update: null });
   assert.equal(line, '');
   assert.equal(render({ model: { display_name: 'M' } }, { passport: { java: '25' }, build: null, rules: [], compactions: 0, update: null }), 'M · Java 25');
+});
+
+// ---- 2.2: the status line command ----
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { utimesSync } from 'node:fs';
+import { markViolated } from '../hooks/lib/state.mjs';
+
+const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), '..', 'hooks', 'statusline.mjs');
+function runLine(stdin, env = {}) {
+  const r = spawnSync(process.execPath, [SCRIPT], { input: stdin, encoding: 'utf8', env: { ...process.env, NO_COLOR: '1', ...env } });
+  return { line: r.stdout, status: r.status };
+}
+
+test('R-SL-8: the session in stdin is the one shown; without session_id the newest session is', () => {
+  const dir = tempProject({ 'pom.xml': BOOT4_POM });
+  const old = sessionDir(dir, uniqueSession('old'));
+  const fresh = sessionDir(dir, uniqueSession('new'));
+  writeState(old, 'lastBuild', { result: 'fail', at: Date.now() });
+  markViolated(old, 'J3');
+  writeState(fresh, 'lastBuild', { result: 'ok', at: Date.now() });
+  markViolated(fresh, 'W1');
+  const past = new Date(Date.now() - 3_600_000);
+  utimesSync(old, past, past);
+
+  const bySession = runLine(JSON.stringify({ session_id: old.split(/[\\/]/).pop(), workspace: { current_dir: dir }, model: { display_name: 'M' } }));
+  assert.equal(bySession.status, 0);
+  assert.match(bySession.line, /^M · Java 21 · Boot 4\.1 · build FAIL · rules J3$/);
+  const newest = runLine(JSON.stringify({ workspace: { current_dir: dir }, model: { display_name: 'M' } }));
+  assert.match(newest.line, /build ok <1m · rules W1$/);
+});
+
+test('R-SL-9: outside a Maven project — no passport, build or rules', () => {
+  const { line } = runLine(JSON.stringify({ workspace: { current_dir: tempProject() }, model: { display_name: 'M' }, context_window: { used_percentage: 10 } }));
+  assert.equal(line, 'M · ctx [#---------] 10%');
+});
+
+test('S-SL-1e: garbage on stdin → "?" and exit 0', () => {
+  const r = runLine('not json');
+  assert.equal(r.status, 0);
+  assert.equal(r.line, '?');
+});
+
+test('Review Focus 2: hundreds of rule markers stay fast', () => {
+  const dir = tempProject({ 'pom.xml': BOOT4_POM });
+  const s = sessionDir(dir, uniqueSession('many'));
+  for (let i = 0; i < 500; i += 1) markViolated(s, `X${i}`);
+  const start = Date.now();
+  const r = runLine(JSON.stringify({ session_id: s.split(/[\\/]/).pop(), workspace: { current_dir: dir }, model: { display_name: 'M' } }));
+  assert.equal(r.status, 0);
+  assert.match(r.line, /rules X\d+ X\d+ X\d+ X\d+$/);
+  assert.ok(Date.now() - start < 1500, `took ${Date.now() - start} ms`);
+});
+
+test('R-SL-7: with the update check switched off the status line shows no update', () => {
+  const cacheRoot = tempProject({ 'status.json': JSON.stringify({ installed: '0.4.3', latest: '0.9.0', at: Date.now() }) });
+  const inp = { workspace: { current_dir: tempProject() } };
+  const prev = process.env.FORBXPG_JAVA_UPDATE_CHECK;
+  try {
+    process.env.FORBXPG_JAVA_UPDATE_CHECK = '1';
+    assert.equal(readStatusData(inp, { cacheRoot }).data.update.latest, '0.9.0');
+    process.env.FORBXPG_JAVA_UPDATE_CHECK = '0';
+    assert.equal(readStatusData(inp, { cacheRoot }).data.update, null);
+  } finally {
+    process.env.FORBXPG_JAVA_UPDATE_CHECK = prev;
+  }
 });
