@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Stop on Windows: Maven prints compile errors as `/C:/…`; the leading slash is dropped, so
+  an error in a file the session changed blocks the turn again instead of being reported as
+  "the build fails in files this session did not change" (found in the live GigaCode test).
+- Stop reports "could not verify" when the Maven wrapper cannot start or the JDK rejects
+  `.mvn/jvm.config` (wrong `JAVA_HOME`), instead of blaming other files.
 - The update notice also comes in a session opened outside a Maven project (for example in
   a general work folder). Everything else still stays silent there: no passport, no rules.
 

@@ -70,5 +70,6 @@ export function runCompile(command, timeoutMs) {
 const ERROR_LINE = /^\[ERROR\]\s+(.+?\.java):\[(\d+),\d+\]\s*(.*)$/gm;
 
 export function parseCompileErrors(output) {
-  return [...output.matchAll(ERROR_LINE)].map((m) => ({ file: m[1].trim(), line: Number(m[2]), message: m[3].trim() }));
+  // On Windows javac reports files as /C:/…; without the leading slash they match the changed files.
+  return [...output.matchAll(ERROR_LINE)].map((m) => ({ file: m[1].trim().replace(/^\/([A-Za-z]:[\\/])/, '$1'), line: Number(m[2]), message: m[3].trim() }));
 }
