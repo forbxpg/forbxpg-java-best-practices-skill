@@ -68,3 +68,15 @@ test('M7: PostToolUse hooks are registered for file tools only, never for shell 
     for (const c of post) assert.doesNotMatch(c.matcher, shell, `${file}: ${c.matcher}`);
   }
 });
+
+// ---- v0.5 4.1: /java commands ----
+test('S-CMD-1a / R-CMD-1 / R-CMD-2: three /java commands, plain instructions without substitutions', () => {
+  const dir = join(dirname(fileURLToPath(import.meta.url)), '..', 'commands', 'java');
+  const expect = { review: /java-code-review/, verify: /java-verification/, update: /install\.mjs" --check/ };
+  for (const [name, mention] of Object.entries(expect)) {
+    const text = readFileSync(join(dir, `${name}.md`), 'utf8');
+    assert.match(text, /^---\ndescription: .+\n---\n/, `${name}: description frontmatter`);
+    assert.doesNotMatch(text, /!\{|\{\{/, `${name}: no shell or argument substitution`);
+    assert.match(text, mention, name);
+  }
+});

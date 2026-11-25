@@ -134,7 +134,7 @@ Files: modify install.mjs, installer/style.mjs; test tests/style.test.mjs
 
 ## 4. Commands
 
-- [ ] 4.1 /java:review, /java:verify, /java:update — verify: node --test passes
+- [x] 4.1 /java:review, /java:verify, /java:update — verify: node --test passes
 
 Covers: S-CMD-1a, R-CMD-1, R-CMD-2, R-CMD-3 · Test: scenario-first
 
