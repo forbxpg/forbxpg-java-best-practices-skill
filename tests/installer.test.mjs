@@ -5,7 +5,7 @@ import { join, dirname, relative } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { installProject, uninstallProject } from '../installer/project.mjs';
-import { runCommand, windowsCommandLine } from '../installer/user.mjs';
+import { runCommand, windowsCommandLine, commandSpec } from '../installer/user.mjs';
 import { tempProject, BOOT4_POM } from './helpers.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -266,11 +266,22 @@ test('Windows command line keeps a repository path with spaces as one argument',
   const quoted = runCommand('gigacode', ['extensions', 'link', 'C:\\Users\\Jane Doe\\forbxpg-java'], { platform: 'win32', spawn });
   assert.equal(quoted.status, 0);
   assert.equal(calls[0].file, process.env.ComSpec || 'cmd.exe');
-  assert.deepEqual(calls[0].args, ['/d', '/s', '/c', 'gigacode extensions link "C:\\Users\\Jane Doe\\forbxpg-java"']);
+  assert.deepEqual(calls[0].args, ['/d', '/s', '/c', '"gigacode extensions link "C:\\Users\\Jane Doe\\forbxpg-java""']);
   assert.equal(calls[0].verbatim, true);
   const r = runCommand(process.execPath, ['-e', 'process.stdout.write(process.argv[1])', 'Jane Doe']);
   assert.equal(r.status, 0);
   assert.equal(r.output, 'Jane Doe');
+});
+
+test('cmd.exe: the whole line is wrapped once, so /s keeps a quoted command path intact', () => {
+  const spec = commandSpec('C:\\Program Files\\GigaCode\\gigacode.cmd', ['extensions', 'link', 'C:\\repo'], 'win32');
+  assert.deepEqual(spec.args, ['/d', '/s', '/c', '""C:\\Program Files\\GigaCode\\gigacode.cmd" extensions link C:\\repo"']);
+});
+
+test('cmd.exe: an argument with % is refused instead of being expanded as a variable', () => {
+  assert.throws(() => windowsCommandLine('gigacode', ['extensions', 'link', 'C:\\100%PATH%\\repo']), /contains %.*run it by hand/s);
+  assert.throws(() => runCommand('gigacode', ['extensions', 'link', 'C:\\a%b'], { platform: 'win32', spawn: () => ({ status: 0 }) }), /contains %/);
+  assert.equal(windowsCommandLine('gigacode', ['extensions', 'link', 'C:\\repo']), 'gigacode extensions link C:\\repo');
 });
 
 test('user scope, GigaCode: link answers Y; uninstall removes the extension', () => {

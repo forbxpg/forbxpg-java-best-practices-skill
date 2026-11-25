@@ -159,3 +159,12 @@ test('compile errors reported under the real path still match files changed thro
   const fake = fakeCompile({ output: `[ERROR] ${join(realpathSync(dir), FOO)}:[1,5] illegal start of expression` });
   assert.equal(parse(await handleStop({}, linked, fake.run)).decision, 'block');
 });
+
+test('a module missing from the reactor is reported as unverifiable, not as a broken build elsewhere', async () => {
+  const { ctx } = setup();
+  const fake = fakeCompile({ output: '[ERROR] Could not find the selected project in the reactor: legacy-module @\n[ERROR] -> [Help 1]' });
+  const out = parse(await handleStop({}, ctx, fake.run));
+  assert.equal(out.decision, undefined);
+  assert.match(out.systemMessage, /Could not verify/);
+  assert.doesNotMatch(out.systemMessage, /did not change/);
+});
