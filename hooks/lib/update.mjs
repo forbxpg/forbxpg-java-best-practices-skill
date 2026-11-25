@@ -22,9 +22,13 @@ export const validRemote = (remote) => typeof remote === 'string' && REMOTE.test
 // Quotes, $, backticks, % and ! mean something to sh or cmd.exe even inside double quotes.
 const SAFE_PATH = /^[^"`$%!\r\n]+$/;
 
-/** `git -C "<dir>" pull --ff-only`, or null when the path cannot be quoted safely (shell syntax, or a trailing backslash that escapes the quote). */
+/**
+ * `git -C "<dir>" pull --ff-only`, or null when the path cannot be quoted safely: shell syntax, a trailing
+ * backslash that escapes the quote, or any backslash in a POSIX path (bash turns \\ into \ inside double quotes).
+ */
 export function pullCommand(dir) {
-  return SAFE_PATH.test(dir) && !dir.endsWith('\\') ? `git -C "${dir}" pull --ff-only` : null;
+  const posixBackslash = dir.startsWith('/') && dir.includes('\\');
+  return SAFE_PATH.test(dir) && !dir.endsWith('\\') && !posixBackslash ? `git -C "${dir}" pull --ff-only` : null;
 }
 
 const readJson = (path) => {
@@ -184,7 +188,7 @@ export function updateNotice({ hooksLibDir, cacheRoot, spawn, log } = {}) {
   const versions = `${source.version} → ${cache.latest}`;
   let action;
   if (source.kind === 'project') {
-    action = `If they agree, ask where their forbxpg-java clone is, then run \`git -C "<clone>" pull --ff-only\` and \`node "<clone>/install.mjs" --agent ${source.agent} --scope project --update\` with <clone> replaced by that path, and commit the result. If the path has quotes, $, backticks, % or ! or ends with a backslash, ask the user to run them instead. Do not run them without their yes.`;
+    action = `If they agree, ask where their forbxpg-java clone is, then run \`git -C "<clone>" pull --ff-only\` and \`node "<clone>/install.mjs" --agent ${source.agent} --scope project --update\` with <clone> replaced by that path, and commit the result. If the path has quotes, $, backticks, % or !, ends with a backslash, or is a Linux/macOS path with any backslash, ask the user to run them instead. Do not run them without their yes.`;
   } else if (pullCommand(source.cloneDir)) {
     action = `If they agree, run \`${pullCommand(source.cloneDir)}\`, then ask them to open a new session. Do not run it without their yes.`;
   } else {

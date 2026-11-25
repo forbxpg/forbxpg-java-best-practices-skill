@@ -327,6 +327,9 @@ test('REV2-6/7: one pull command for the notice and --check; none for a path end
   assert.equal(pullCommand('C:\\Work\\fj'), 'git -C "C:\\Work\\fj" pull --ff-only');
   assert.equal(pullCommand('C:\\Work\\fj\\'), null);
   assert.equal(pullCommand('/a$(id)'), null);
+  assert.equal(pullCommand('/tmp/clone\\\\name'), null, 'POSIX: bash turns \\\\ into \\ inside double quotes');
+  assert.equal(pullCommand('/tmp/clone\\name'), null, 'POSIX: no backslash at all');
+  assert.equal(pullCommand('\\\\server\\share\\fj'), 'git -C "\\\\server\\share\\fj" pull --ff-only', 'a Windows UNC path stays');
 });
 
 test('REV2-8: a background check that fails to start is logged, still without failing the hook', () => {
