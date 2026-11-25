@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.3 — 2026-11-25
 
 - Update notice: the model now starts its first reply with "forbxpg-java X is available
   (installed Y). Update?". GigaCode 26.11 does not display a session-start `systemMessage`,
