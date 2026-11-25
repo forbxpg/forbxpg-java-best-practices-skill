@@ -195,7 +195,8 @@ export function updateNotice({ hooksLibDir, cacheRoot, spawn, log } = {}) {
     action = 'Ask them to run git pull --ff-only in their forbxpg-java clone and open a new session. Its path has characters that are unsafe in a command: do not run it yourself.';
   }
   return {
-    context: `[forbxpg-java] Update available: ${versions}.\nTell the user once, in one line. ${action}`,
+    // GigaCode 26.11 does not show a SessionStart systemMessage, so the model is the only messenger there.
+    context: `[forbxpg-java] Update available: ${versions}.\nStart your first reply with one line for the user: "forbxpg-java ${cache.latest} is available (installed ${source.version}). Update?" Say it once in this conversation. ${action}`,
     user: `forbxpg-java: update available ${versions}`,
   };
 }

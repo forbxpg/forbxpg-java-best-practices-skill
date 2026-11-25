@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Update notice: the model now starts its first reply with "forbxpg-java X is available
+  (installed Y). Update?". GigaCode 26.11 does not display a session-start `systemMessage`,
+  so the model is the only one who can tell the user there.
+
 ## 0.4.2 — 2026-11-25
 
 - Stop on Windows: Maven prints compile errors as `/C:/…`; the leading slash is dropped, so
