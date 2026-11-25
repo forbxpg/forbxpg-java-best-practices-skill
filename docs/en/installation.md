@@ -95,8 +95,10 @@ The flag writes six `ui.*` keys into `~/.gigacode/settings.json` and copies the 
   `!` marks context from `contextWarnAt` (70%), `!!` from 85% (GigaCode's auto-compaction);
   `build ok/FAIL/?` is the last Stop check; `rules` are the rules broken in the session;
   `compact xN` counts compactions; `fj …` appears when a newer version exists. Empty parts
-  are hidden; a narrow terminal keeps model, context and build. The line only reads the
-  hooks' files (no git, no Maven); `NO_COLOR` turns colour off.
+  are hidden. The line only reads the hooks' files (no git, no Maven) and refreshes on agent
+  events and every 30 s; one run takes about 0.3 s on Windows. GigaCode 26.11 does not pass
+  the terminal width to the command: it cuts a long line itself, on the right, where the
+  least important parts are. `NO_COLOR` turns colour off.
 - **Theme** `forbxpg Light` / `forbxpg Dark`, a **banner** with a logo, **loading phrases**
   about Java and Spring.
 - If your settings already set a theme or a status line, the installer names those keys and
@@ -104,6 +106,8 @@ The flag writes six `ui.*` keys into `~/.gigacode/settings.json` and copies the 
   `~/.gigacode/forbxpg-java-style.json` and restored by `--uninstall`. A copy
   `settings.json.forbxpg-java.bak` is made before the first write.
 - A `settings.json` with comments (not JSON) is not edited.
+- If loading phrases are switched off in `ui.accessibility`, the installer says so: the
+  forbxpg phrases will not show then. A narrow window shows `forbxpg-java` instead of the logo.
 
 ## `/java:*` commands
 

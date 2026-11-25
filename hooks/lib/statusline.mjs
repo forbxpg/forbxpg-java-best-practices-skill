@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 
 const SEP = ' · ';
-const ANSI = { red: 31, green: 32, yellow: 33 };
+const ANSI = { dim: 2, red: 31, green: 32, yellow: 33, blue: 34, magenta: 35, cyan: 36 };
 // Dropped first to last when the terminal is too narrow; model, ctx and build always stay.
 const DROP_ORDER = ['compact', 'branch', 'fj', 'rules', 'passport'];
 
@@ -39,7 +39,6 @@ function buildSegment(build, now, color) {
   return { plain: `build ok ${age}`, colored: `build ${paint(color, 'green', 'ok')} ${age}` };
 }
 
-const same = (text) => (text ? { plain: text, colored: text } : null);
 
 /**
  * One status line. input: GigaCode's status line JSON; data: { passport, build, rules,
@@ -49,11 +48,12 @@ export function renderStatusLine(input, data, { color = false, width, warnAt = 0
   const p = data.passport;
   const passport = p ? [p.java && `Java ${p.java}`, p.boot && `Boot ${String(p.boot).split('.').slice(0, 2).join('.')}`].filter(Boolean).join(SEP) : '';
   const update = data.update?.latest && data.update.installed && newer(data.update.latest, data.update.installed) ? data.update : null;
+  const same = (text, name) => (text ? { plain: text, colored: name ? paint(color, name, text) : text } : null);
   const segments = [
-    ['model', same(input?.model?.display_name ?? input?.model?.id)],
-    ['branch', same(input?.git?.branch)],
+    ['model', same(input?.model?.display_name ?? input?.model?.id, 'cyan')],
+    ['branch', same(input?.git?.branch, 'magenta')],
     ['ctx', contextSegment(Number(input?.context_window?.used_percentage ?? NaN), warnAt, color)],
-    ['passport', same(passport)],
+    ['passport', same(passport, 'blue')],
     ['build', buildSegment(data.build, now, color)],
     ['rules', same(data.rules?.length ? `rules ${data.rules.slice(0, 4).join(' ')}` : '')],
     ['compact', same(data.compactions > 0 ? `compact x${data.compactions}` : '')],
@@ -68,7 +68,7 @@ export function renderStatusLine(input, data, { color = false, width, warnAt = 0
       shown = shown.filter(([k]) => k !== key);
     }
   }
-  return shown.map(([, s]) => s.colored).join(SEP);
+  return shown.map(([, s]) => s.colored).join(paint(color, 'dim', SEP));
 }
 
 // ---- Reading what the hooks left behind (files only, no processes) ----

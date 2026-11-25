@@ -247,3 +247,12 @@ test('FIX-6: a failing status write never costs the compile-error block', async 
   const r = await handleStop({}, ctx, compile({ output: `[ERROR] ${join(dir, FOO)}:[3,5] cannot find symbol` }));
   assert.equal(JSON.parse(r.stdout).decision, 'block');
 });
+
+test('PROBE-3: with colour on, model, branch and passport are coloured and separators dimmed', () => {
+  const line = render(input(10), full, { color: true });
+  assert.ok(line.includes('\x1b[36mDeepSeek V4.1\x1b[0m'), line);
+  assert.ok(line.includes('\x1b[35mmain\x1b[0m'), line);
+  assert.ok(line.includes('\x1b[34mJava 21'), line);
+  assert.ok(line.includes('\x1b[2m · \x1b[0m'), line);
+  assert.equal(render(input(10), full, { color: false }).includes('\x1b'), false);
+});

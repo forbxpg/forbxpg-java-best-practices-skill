@@ -4,6 +4,8 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync, rmSyn
 import { join } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { renderStatusLine } from '../hooks/lib/statusline.mjs';
+import { mavenRootAbove, onlyChildProject } from '../hooks/lib/io.mjs';
+import { readPassport } from '../hooks/lib/passport.mjs';
 
 const KEYS = ['statusLine', 'theme', 'customBannerTitle', 'customBannerSubtitle', 'customAsciiArt', 'customWittyPhrases'];
 const THEMES = ['forbxpg-light.json', 'forbxpg-dark.json'];
@@ -40,12 +42,15 @@ export function styleValues({ repoDir, homeDir, dark = false }) {
   if (/["%]/.test(script)) throw new Error(`the clone path cannot be quoted for the status line command: ${script}`);
   const asset = (...p) => readFileSync(join(repoDir, 'gigacode', ...p), 'utf8');
   return {
-    statusLine: { type: 'command', command: `node "${script}"`, refreshInterval: 5 },
+    // 30 s: the build age moves by minutes; context and model refresh on agent events anyway.
+    // respectUserColors keeps our ANSI colours where a GigaCode version would dim them.
+    statusLine: { type: 'command', command: `node "${script}"`, refreshInterval: 30, respectUserColors: true },
     // GigaCode loads theme files only from the home folder; forward slashes work on Windows too.
     theme: join(paths(homeDir).themes, dark ? THEMES[1] : THEMES[0]).replace(/\\/g, '/'),
     customBannerTitle: 'forbxpg-java',
     customBannerSubtitle: 'Java · Spring Boot · guarded by hooks',
-    customAsciiArt: asset('banner.txt').replace(/\n$/, ''),
+    // Narrow terminals get the name only, so the logo never collides with the info box.
+    customAsciiArt: { small: 'forbxpg-java', large: asset('banner.txt').replace(/\n$/, '') },
     customWittyPhrases: JSON.parse(asset('phrases.json')),
   };
 }
@@ -59,9 +64,14 @@ export function installStyle({ repoDir, homeDir, dark = false, force = false, dr
   const desired = styleValues({ repoDir, homeDir, dark });
   const ours = (key) => receipt && isDeepStrictEqual(ui[key], receipt.installed?.[key]);
   const conflicts = KEYS.filter((k) => ui[k] !== undefined && !isDeepStrictEqual(ui[k], desired[k]) && !ours(k));
-  if (conflicts.length > 0 && !force) return { written: [], conflicts };
+  if (conflicts.length > 0 && !force) return { written: [], conflicts, replaced: [], notes: [] };
   const written = KEYS.filter((k) => !isDeepStrictEqual(ui[k], desired[k]));
-  if (dryRun || written.length === 0) return { written, conflicts };
+  const replaced = conflicts.map((key) => ({ key, from: ui[key] }));
+  const a11y = ui.accessibility ?? {};
+  const notes = a11y.disableLoadingPhrases === true || a11y.enableLoadingPhrases === false
+    ? ['loading phrases are switched off in ui.accessibility, so the forbxpg phrases will not show']
+    : [];
+  if (dryRun || written.length === 0) return { written, conflicts, replaced, notes };
 
   // A re-install keeps the original value only for keys still holding ours; a key the user
   // changed since is their value now, and that is what uninstall must give back.
@@ -78,7 +88,7 @@ export function installStyle({ repoDir, homeDir, dark = false, force = false, dr
     installed: desired,
     themes: THEMES,
   });
-  return { written, conflicts };
+  return { written, conflicts, replaced, notes };
 }
 
 /** Puts back what the install replaced; keys the user changed since are kept. */
@@ -112,13 +122,16 @@ export function uninstallStyle({ homeDir, dryRun = false }) {
 }
 
 /** --preview: the status line on sample data in three states, and the banner. Writes nothing. */
-export function previewStyle({ repoDir, color }) {
+export function previewStyle({ repoDir, color, cwd = process.cwd() }) {
   const now = Date.now();
   const input = (pct, branch = 'main') => ({ model: { display_name: 'DeepSeek V4.1' }, git: { branch }, context_window: { used_percentage: pct } });
-  const passport = { java: '21', boot: '4.1.1' };
+  // The passport of the project you are in, if any; the rest is sample data.
+  const root = mavenRootAbove(cwd) ?? onlyChildProject(cwd);
+  const passport = root ? readPassport(root) : { java: '21', boot: '4.1.1' };
   const render = (inp, data) => renderStatusLine(inp, { rules: [], compactions: 0, update: null, passport: null, build: null, ...data }, { color, warnAt: 0.7, now });
   const banner = readFileSync(join(repoDir, 'gigacode', 'banner.txt'), 'utf8').replace(/\n$/, '');
   return [
+    `Sample data${root ? ', passport of this project' : ''}.`,
     'Status line, all good:',
     `  ${render(input(34), { passport, build: { result: 'ok', at: now - 3 * 60_000 } })}`,
     'Status line, warnings:',

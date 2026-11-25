@@ -77,12 +77,13 @@ function style(opts) {
   }
   const r = installStyle({ repoDir: REPO, homeDir, dark: opts.dark, force: opts.force, dryRun: opts.dryRun });
   if (r.conflicts.length > 0 && !opts.force) {
-    console.log(`Not installed: ~/.gigacode/settings.json already sets ${r.conflicts.map((k) => `ui.${k}`).join(', ')}.`);
-    console.log('Run again with --force to replace them; --gigacode-style --uninstall puts them back.');
+    console.log(`Not installed: ~/.gigacode/settings.json already sets ${r.conflicts.map((k) => `ui.${k}`).join(', ')}; add --force to replace (--gigacode-style --uninstall puts them back).`);
     return 1;
   }
   if (r.written.length === 0) console.log('The forbxpg look is already installed.');
   else console.log(`${opts.dryRun ? 'Would set' : 'forbxpg look installed; set'}: ${r.written.map((k) => `ui.${k}`).join(', ')}`);
+  for (const { key, from } of r.replaced) console.log(`  ui.${key}: ${JSON.stringify(from)} → forbxpg`);
+  for (const note of r.notes) console.log(`  note: ${note}`);
   if (!opts.dryRun && r.written.length > 0) console.log('Open a new GigaCode session. Undo: node install.mjs --gigacode-style --uninstall');
   return 0;
 }

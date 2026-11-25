@@ -63,7 +63,7 @@ test('S-STYLE-1a: six ui keys are written, other keys kept; uninstall restores t
   assert.deepEqual(after.mcpServers, ORIGINAL.mcpServers);
   assert.equal(after.ui.useTerminalBuffer, true);
   assert.equal(after.ui.statusLine.type, 'command');
-  assert.equal(after.ui.statusLine.refreshInterval, 5);
+  assert.equal(after.ui.statusLine.refreshInterval, 30);
   assert.match(after.ui.theme, /\.gigacode\/themes\/forbxpg-light\.json$/);
   assert.ok(existsSync(join(dir, '.gigacode', 'themes', 'forbxpg-light.json')));
   assert.ok(existsSync(join(dir, '.gigacode', 'settings.json.forbxpg-java.bak')));
@@ -172,4 +172,49 @@ test('FIX-1: a value the user set after the install survives --force and uninsta
   installStyle({ repoDir: REPO, homeDir: dir, force: true });
   uninstallStyle({ homeDir: dir });
   assert.equal(settingsOf(dir).ui.theme, 'UserLater');
+});
+
+// ---- Probe fixes (GigaCode 26.11.141 on the work machine) ----
+test('PROBE-1/4: the status line refreshes every 30 s and keeps its own colours', () => {
+  const dir = home({});
+  installStyle({ repoDir: REPO, homeDir: dir });
+  const sl = settingsOf(dir).ui.statusLine;
+  assert.equal(sl.refreshInterval, 30);
+  assert.equal(sl.respectUserColors, true);
+});
+
+test('PROBE-7: the banner has a narrow and a wide form', () => {
+  const dir = home({});
+  installStyle({ repoDir: REPO, homeDir: dir });
+  const art = settingsOf(dir).ui.customAsciiArt;
+  assert.equal(art.small, 'forbxpg-java');
+  assert.match(art.large, /forbxpg-java/);
+  assert.ok(art.large.split('\n').length > 1);
+});
+
+test('PROBE-5/8: install reports switched-off loading phrases and what --force replaced', () => {
+  const dir = home({ ui: { theme: 'Ayu Light', accessibility: { disableLoadingPhrases: true } } });
+  const r = installStyle({ repoDir: REPO, homeDir: dir, force: true });
+  assert.deepEqual(r.replaced, [{ key: 'theme', from: 'Ayu Light' }]);
+  assert.match(r.notes.join('\n'), /loading phrases are switched off/);
+  const off = home({ ui: { accessibility: { enableLoadingPhrases: false } } });
+  assert.match(installStyle({ repoDir: REPO, homeDir: off }).notes.join('\n'), /loading phrases are switched off/);
+});
+
+test('PROBE-9/8: the CLI names --force in the refusal line and prints old → new after --force', () => {
+  const dir = home({ ui: { theme: 'Ayu Light' } });
+  const env = { ...process.env, HOME: dir, USERPROFILE: dir };
+  const refused = spawnSync(process.execPath, [join(REPO, 'install.mjs'), '--gigacode-style'], { encoding: 'utf8', env });
+  assert.equal(refused.status, 1);
+  assert.match(refused.stdout.split('\n')[0], /ui\.theme.*--force/);
+  const forced = spawnSync(process.execPath, [join(REPO, 'install.mjs'), '--gigacode-style', '--force'], { encoding: 'utf8', env });
+  assert.match(forced.stdout, /ui\.theme: "Ayu Light" → /);
+});
+
+test('PROBE-2: --preview uses the passport of the current Maven project and marks sample data', () => {
+  const project = tempProject({ 'pom.xml': '<project><parent><artifactId>spring-boot-starter-parent</artifactId><version>4.0.7</version></parent><properties><java.version>21</java.version></properties></project>' });
+  const r = spawnSync(process.execPath, [join(REPO, 'install.mjs'), '--gigacode-style', '--preview'], { encoding: 'utf8', cwd: project, env: { ...process.env, NO_COLOR: '1' } });
+  assert.match(r.stdout, /Boot 4\.0/);
+  assert.doesNotMatch(r.stdout, /Boot 4\.1/);
+  assert.match(r.stdout, /Sample data, passport of this project/);
 });
