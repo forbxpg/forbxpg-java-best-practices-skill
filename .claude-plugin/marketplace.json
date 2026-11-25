@@ -8,7 +8,7 @@
     {
       "name": "forbxpg-java",
       "description": "Java / Spring Boot best practices for coding agents: ten skills plus hooks that block hard-rule violations before a write and report soft ones after it.",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "source": "./",
       "author": {
         "name": "forbxpg"

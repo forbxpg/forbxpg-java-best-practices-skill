@@ -1,7 +1,7 @@
 # Changelog
 
 
-## Unreleased
+## 0.4.0 — 2026-11-25
 
 - Update notice: once a day, in the background, the hooks compare the installed version with
   the newest `vX.Y.Z` tag on the remote the skill was installed from and tell the user (and the
