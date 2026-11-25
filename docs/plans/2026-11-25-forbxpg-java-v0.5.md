@@ -122,7 +122,7 @@ Interfaces:
    Run. Expected: FAIL.
 2. Implement. Commit `feat(install): --gigacode-style installs and removes the forbxpg look`.
 
-- [ ] 3.3 --preview — verify: node --test passes
+- [x] 3.3 --preview — verify: node --test passes
 
 Covers: R-STYLE-6, S-STYLE-1c · Test: scenario-first
 

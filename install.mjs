@@ -6,7 +6,7 @@ import { installProject, uninstallProject } from './installer/project.mjs';
 import { installUser } from './installer/user.mjs';
 import { join } from 'node:path';
 import { installSource, runCheck, checkRemote, newer, pullCommand } from './hooks/lib/update.mjs';
-import { installStyle, uninstallStyle } from './installer/style.mjs';
+import { installStyle, uninstallStyle, previewStyle } from './installer/style.mjs';
 import { homedir } from 'node:os';
 
 const REPO = dirname(fileURLToPath(import.meta.url));
@@ -23,7 +23,8 @@ Options
   --dry-run         print the plan, change nothing
   --check           compare this clone's version with the newest release tag on its remote
   --gigacode-style  the forbxpg look for GigaCode in ~/.gigacode: status line, theme, banner,
-                    loading phrases (with --dark, --force, --dry-run, --uninstall)
+                    loading phrases (with --dark, --force, --dry-run, --uninstall,
+                    --preview to see it first)
   --help            this text
 
 User scope registers this folder with the agent's own CLI (gigacode extensions link;
@@ -34,7 +35,7 @@ the hooks into the agent's settings.json and writes install-receipt.json. Commit
 so the whole team gets it. Each developer approves the project hooks once in the agent.`;
 
 function parse(argv) {
-  const opts = { agent: null, scope: null, project: process.cwd(), update: false, force: false, uninstall: false, dryRun: false, check: false, help: false, style: false, dark: false };
+  const opts = { agent: null, scope: null, project: process.cwd(), update: false, force: false, uninstall: false, dryRun: false, check: false, help: false, style: false, dark: false, preview: false };
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
     if (a === '--agent') opts.agent = argv[++i];
@@ -47,6 +48,7 @@ function parse(argv) {
     else if (a === '--check') opts.check = true;
     else if (a === '--gigacode-style') opts.style = true;
     else if (a === '--dark') opts.dark = true;
+    else if (a === '--preview') opts.preview = true;
     else if (a === '--help' || a === '-h') opts.help = true;
     else throw new Error(`unknown option ${a}`);
   }
@@ -109,6 +111,10 @@ function check() {
 function main() {
   const opts = parse(process.argv.slice(2));
   if (opts.check) return check();
+  if (opts.style && opts.preview) {
+    console.log(previewStyle({ repoDir: REPO, color: process.stdout.isTTY && !process.env.NO_COLOR }));
+    return 0;
+  }
   if (opts.style) return style(opts);
   if (opts.help || !opts.agent || !opts.scope) {
     console.log(HELP);

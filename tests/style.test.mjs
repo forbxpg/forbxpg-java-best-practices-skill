@@ -142,3 +142,23 @@ test('install.mjs --gigacode-style and --uninstall work from the command line', 
   assert.equal(u.status, 0, u.stderr);
   assert.deepEqual(settingsOf(dir), { ui: {} });
 });
+
+// ---- 3.3: --preview ----
+import { readdirSync } from 'node:fs';
+
+test('R-STYLE-6 / S-STYLE-1c: --preview prints three status lines and the banner, and changes nothing', () => {
+  const dir = home({ ui: { theme: 'Ayu Light' } });
+  const before = readFileSync(join(dir, '.gigacode', 'settings.json'), 'utf8');
+  const r = spawnSync(process.execPath, [join(REPO, 'install.mjs'), '--gigacode-style', '--preview'], { encoding: 'utf8', env: { ...process.env, HOME: dir, USERPROFILE: dir, NO_COLOR: '1' } });
+  assert.equal(r.status, 0, r.stderr);
+  const lines = r.stdout.split('\n').filter((l) => l.includes('ctx ['));
+  assert.equal(lines.length, 3, r.stdout);
+  assert.match(lines[0], /build ok/);
+  assert.match(lines[1], /!! · .*build FAIL · rules /);
+  assert.match(lines[2], /available\)$/);
+  assert.doesNotMatch(lines[2], /Java|build/);
+  assert.match(r.stdout, /forbxpg-java/);
+  assert.match(r.stdout, /guarded by hooks/);
+  assert.equal(readFileSync(join(dir, '.gigacode', 'settings.json'), 'utf8'), before);
+  assert.deepEqual(readdirSync(join(dir, '.gigacode')), ['settings.json']);
+});

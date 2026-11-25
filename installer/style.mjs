@@ -3,6 +3,7 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
+import { renderStatusLine } from '../hooks/lib/statusline.mjs';
 
 const KEYS = ['statusLine', 'theme', 'customBannerTitle', 'customBannerSubtitle', 'customAsciiArt', 'customWittyPhrases'];
 const THEMES = ['forbxpg-light.json', 'forbxpg-dark.json'];
@@ -106,4 +107,25 @@ export function uninstallStyle({ homeDir, dryRun = false }) {
   rmSync(p.receipt, { force: true });
   if (kept.length === 0) rmSync(p.backup, { force: true });
   return { restored, kept };
+}
+
+/** --preview: the status line on sample data in three states, and the banner. Writes nothing. */
+export function previewStyle({ repoDir, color }) {
+  const now = Date.now();
+  const input = (pct, branch = 'main') => ({ model: { display_name: 'DeepSeek V4.1' }, git: { branch }, context_window: { used_percentage: pct } });
+  const passport = { java: '21', boot: '4.1.1' };
+  const render = (inp, data) => renderStatusLine(inp, { rules: [], compactions: 0, update: null, passport: null, build: null, ...data }, { color, warnAt: 0.7, now });
+  const banner = readFileSync(join(repoDir, 'gigacode', 'banner.txt'), 'utf8').replace(/\n$/, '');
+  return [
+    'Status line, all good:',
+    `  ${render(input(34), { passport, build: { result: 'ok', at: now - 3 * 60_000 } })}`,
+    'Status line, warnings:',
+    `  ${render(input(88), { passport, build: { result: 'fail', at: now }, rules: ['J1', 'W2'], compactions: 2 })}`,
+    'Status line, outside a Maven project:',
+    `  ${render({ ...input(12), git: {} }, { update: { installed: '0.4.3', latest: '0.5.0' } })}`,
+    '',
+    'Banner:',
+    banner,
+    'forbxpg-java · Java · Spring Boot · guarded by hooks',
+  ].join('\n');
 }
