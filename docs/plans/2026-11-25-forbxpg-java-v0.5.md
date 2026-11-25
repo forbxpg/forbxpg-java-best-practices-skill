@@ -36,7 +36,7 @@ merges six `ui.*` keys into `~/.gigacode/settings.json` with a receipt of previo
 
 ## 1. State for the status line
 
-- [ ] 1.1 Hooks record lastBuild, compactions and status.json — verify: node --test passes
+- [x] 1.1 Hooks record lastBuild, compactions and status.json — verify: node --test passes
 
 Covers: R-SL-4, R-SL-6, R-SL-7 · Test: scenario-first
 

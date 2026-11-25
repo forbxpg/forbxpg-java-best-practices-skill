@@ -100,6 +100,11 @@ export function cacheFile(remote, { cacheRoot = DEFAULT_CACHE_ROOT() } = {}) {
   return join(cacheRoot, `${createHash('sha1').update(remote).digest('hex').slice(0, 16)}.json`);
 }
 
+/** What the status line shows about updates: { installed, latest, at }, next to the check cache. */
+export function statusFile(cacheRoot = DEFAULT_CACHE_ROOT()) {
+  return join(cacheRoot, 'status.json');
+}
+
 export function readCache(remote, opts = {}) {
   return readJson(cacheFile(remote, opts));
 }
@@ -184,6 +189,13 @@ export function updateNotice({ hooksLibDir, cacheRoot, spawn, log } = {}) {
   if (!source) return null;
   const cache = readCache(source.remote, cacheRoot ? { cacheRoot } : {});
   if (isStale(cache)) spawnCheck(source.remote, spawn, log);
+  try {
+    const file = statusFile(cacheRoot);
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, JSON.stringify({ installed: source.version, latest: cache?.latest ?? null, at: Date.now() }));
+  } catch (err) {
+    log?.(err);
+  }
   if (!cache?.latest || !newer(cache.latest, source.version)) return null;
   const versions = `${source.version} → ${cache.latest}`;
   let action;

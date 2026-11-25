@@ -74,6 +74,9 @@ export async function handleStop(input, ctx, runCompile = realRunCompile) {
     else if (errors.length === 0 && UNVERIFIABLE.test(result.output)) unverifiable = true;
     else foreign = true;
   }
+  // For the status line: what the last compile of this session showed.
+  const result = own.length > 0 ? 'fail' : timedOut || unverifiable || foreign ? 'unverified' : 'ok';
+  writeState(ctx.stateDir, 'lastBuild', { result, at: Date.now() });
   if (timedOut) return notice('[forbxpg-java] Could not verify the build: the compile timed out.');
   if (own.length === 0 && !unverifiable && !foreign) {
     writeState(ctx.stateDir, 'lastOkFingerprint', fingerprint);
