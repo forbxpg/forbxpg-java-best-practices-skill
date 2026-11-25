@@ -103,7 +103,7 @@ Files: create gigacode/themes/forbxpg-light.json, gigacode/themes/forbxpg-dark.j
    Run. Expected: FAIL.
 2. Write the assets. Commit `feat(style): forbxpg themes, banner and loading phrases`.
 
-- [ ] 3.2 install.mjs --gigacode-style — verify: node --test passes
+- [x] 3.2 install.mjs --gigacode-style — verify: node --test passes
 
 Covers: S-STYLE-1a, S-STYLE-1b, R-STYLE-1, R-STYLE-2, R-STYLE-3, R-STYLE-4, R-STYLE-5 · Test: scenario-first
 

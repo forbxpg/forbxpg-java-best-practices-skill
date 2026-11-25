@@ -6,6 +6,8 @@ import { installProject, uninstallProject } from './installer/project.mjs';
 import { installUser } from './installer/user.mjs';
 import { join } from 'node:path';
 import { installSource, runCheck, checkRemote, newer, pullCommand } from './hooks/lib/update.mjs';
+import { installStyle, uninstallStyle } from './installer/style.mjs';
+import { homedir } from 'node:os';
 
 const REPO = dirname(fileURLToPath(import.meta.url));
 
@@ -20,6 +22,8 @@ Options
   --uninstall       remove exactly what the install wrote (from its receipt)
   --dry-run         print the plan, change nothing
   --check           compare this clone's version with the newest release tag on its remote
+  --gigacode-style  the forbxpg look for GigaCode in ~/.gigacode: status line, theme, banner,
+                    loading phrases (with --dark, --force, --dry-run, --uninstall)
   --help            this text
 
 User scope registers this folder with the agent's own CLI (gigacode extensions link;
@@ -30,7 +34,7 @@ the hooks into the agent's settings.json and writes install-receipt.json. Commit
 so the whole team gets it. Each developer approves the project hooks once in the agent.`;
 
 function parse(argv) {
-  const opts = { agent: null, scope: null, project: process.cwd(), update: false, force: false, uninstall: false, dryRun: false, check: false, help: false };
+  const opts = { agent: null, scope: null, project: process.cwd(), update: false, force: false, uninstall: false, dryRun: false, check: false, help: false, style: false, dark: false };
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
     if (a === '--agent') opts.agent = argv[++i];
@@ -41,6 +45,8 @@ function parse(argv) {
     else if (a === '--uninstall') opts.uninstall = true;
     else if (a === '--dry-run') opts.dryRun = true;
     else if (a === '--check') opts.check = true;
+    else if (a === '--gigacode-style') opts.style = true;
+    else if (a === '--dark') opts.dark = true;
     else if (a === '--help' || a === '-h') opts.help = true;
     else throw new Error(`unknown option ${a}`);
   }
@@ -52,6 +58,31 @@ function report(title, result) {
   console.log(`  written: ${result.written.length} file(s)`);
   for (const f of result.skipped) console.log(`  kept (changed in the project): ${f}`);
   for (const f of result.removed) console.log(`  removed: ${f}`);
+}
+
+/** --gigacode-style: the forbxpg look in ~/.gigacode/settings.json. */
+function style(opts) {
+  const homeDir = homedir();
+  if (opts.uninstall) {
+    const r = uninstallStyle({ homeDir, dryRun: opts.dryRun });
+    if (r.missing) {
+      console.log('The forbxpg look is not installed (no ~/.gigacode/forbxpg-java-style.json).');
+      return 0;
+    }
+    console.log(`${opts.dryRun ? 'Would restore' : 'forbxpg look removed; restored'}: ${r.restored.join(', ') || 'nothing'}`);
+    for (const k of r.kept) console.log(`  kept ui.${k}: you changed it after the install`);
+    return 0;
+  }
+  const r = installStyle({ repoDir: REPO, homeDir, dark: opts.dark, force: opts.force, dryRun: opts.dryRun });
+  if (r.conflicts.length > 0 && !opts.force) {
+    console.log(`Not installed: ~/.gigacode/settings.json already sets ${r.conflicts.map((k) => `ui.${k}`).join(', ')}.`);
+    console.log('Run again with --force to replace them; --gigacode-style --uninstall puts them back.');
+    return 1;
+  }
+  if (r.written.length === 0) console.log('The forbxpg look is already installed.');
+  else console.log(`${opts.dryRun ? 'Would set' : 'forbxpg look installed; set'}: ${r.written.map((k) => `ui.${k}`).join(', ')}`);
+  if (!opts.dryRun && r.written.length > 0) console.log('Open a new GigaCode session. Undo: node install.mjs --gigacode-style --uninstall');
+  return 0;
 }
 
 /** --check: installed version of this clone against the newest vX.Y.Z tag on its origin. */
@@ -78,6 +109,7 @@ function check() {
 function main() {
   const opts = parse(process.argv.slice(2));
   if (opts.check) return check();
+  if (opts.style) return style(opts);
   if (opts.help || !opts.agent || !opts.scope) {
     console.log(HELP);
     return opts.help ? 0 : 2;
