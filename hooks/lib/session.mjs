@@ -51,31 +51,41 @@ export function claimRecovery(stateDir) {
   };
 }
 
+/** The update notice for this session, at most once per session id; null when there is none or it is off. */
+function sessionNotice(input, ctx) {
+  // FORBXPG_JAVA_UPDATE_CHECK=0 switches the check off for a whole environment (CI, air-gapped machines, the test suite).
+  // Resume and compaction continue a conversation that was already told.
+  if (ctx.config.updateCheck === false || process.env.FORBXPG_JAVA_UPDATE_CHECK === '0' || ['resume', 'compact'].includes(input.source) || readState(ctx.stateDir, 'updateNoticed', false)) return null;
+  const notice = updateNotice({ hooksLibDir: ctx.hooksLibDir ?? HERE, cacheRoot: ctx.updateCacheRoot, spawn: ctx.spawn, log: (err) => logError(ctx.stateDir, err) });
+  if (notice) {
+    try {
+      writeState(ctx.stateDir, 'updateNoticed', true);
+    } catch (err) {
+      logError(ctx.stateDir, err);
+    }
+  }
+  return notice;
+}
+
+// JSON only when there is something for the user to see: the context and a visible system message.
+const withNotice = (context, notice) => ({
+  stdout: JSON.stringify({ systemMessage: notice.user, hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: context } }),
+});
+
 export function handleSessionStart(input, ctx) {
   if (input.source === 'compact') noteCompaction(ctx.stateDir);
   const line = `[forbxpg-java] ${passportLine(readPassport(ctx.projectDir))}`;
   // GigaCode loads the router through contextFileName; Claude Code and Codex get it here.
   const router = ctx.harness === 'gigacode' ? '' : routerBody();
   const text = router ? `${line}\n\n${router}\n` : `${line}\n`;
-  // FORBXPG_JAVA_UPDATE_CHECK=0 switches the check off for a whole environment (CI, air-gapped machines, the test suite).
-  // Resume and compaction continue a conversation that was already told.
-  // Once per session id: a repeated startup event does not tell the user again.
-  const notice = ctx.config.updateCheck === false || process.env.FORBXPG_JAVA_UPDATE_CHECK === '0' || ['resume', 'compact'].includes(input.source) || readState(ctx.stateDir, 'updateNoticed', false)
-    ? null
-    : updateNotice({ hooksLibDir: ctx.hooksLibDir ?? HERE, cacheRoot: ctx.updateCacheRoot, spawn: ctx.spawn, log: (err) => logError(ctx.stateDir, err) });
-  if (!notice) return { stdout: text };
-  try {
-    writeState(ctx.stateDir, 'updateNoticed', true);
-  } catch (err) {
-    logError(ctx.stateDir, err);
-  }
-  // JSON only when there is something for the user to see: the context and a visible system message.
-  return {
-    stdout: JSON.stringify({
-      systemMessage: notice.user,
-      hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: `${text}\n${notice.context}` },
-    }),
-  };
+  const notice = sessionNotice(input, ctx);
+  return notice ? withNotice(`${text}\n${notice.context}`, notice) : { stdout: text };
+}
+
+/** A session opened outside a Maven project: no passport or rules, only the update notice when there is one. */
+export function handleSessionStartOutsideMaven(input, ctx) {
+  const notice = sessionNotice(input, ctx);
+  return notice ? withNotice(notice.context, notice) : {};
 }
 
 export function handlePostCompact(input, ctx) {

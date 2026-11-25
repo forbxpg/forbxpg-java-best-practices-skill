@@ -70,6 +70,7 @@ update command: the model may run it only after your yes.
   version, the agent `gigacode` or `claude`, and a URL, `user@host:path` or absolute path as
   the remote. Anything else (an option such as `--upload-pack=…`, `ext::`) → no check.
 - The notice comes with a new conversation, not on resume or after compaction.
+- The notice comes in any folder, also outside a Maven project.
 - Check now: `node install.mjs --check`.
 - Off: `"updateCheck": false` in `forbxpg-java.json`, or `FORBXPG_JAVA_UPDATE_CHECK=0`.
 - Installs from the Claude Code marketplace or from a zip are not checked.

@@ -70,6 +70,7 @@ npx skills add forbxpg/forbxpg-java-best-practices-skill
   агенту `gigacode` или `claude` и remote в виде URL, `user@host:path` или абсолютного пути.
   Остальное (опция вроде `--upload-pack=…`, `ext::`) → проверки нет.
 - Уведомление приходит в новом разговоре, не при resume и не после сжатия.
+- Уведомление приходит в любой папке, в том числе вне Maven-проекта.
 - Проверить сейчас: `node install.mjs --check`.
 - Выключить: `"updateCheck": false` в `forbxpg-java.json` или `FORBXPG_JAVA_UPDATE_CHECK=0`.
 - Установки из маркетплейса Claude Code и из zip не проверяются.

@@ -8,7 +8,7 @@ import { sessionDir, logError } from './lib/state.mjs';
 import { loadConfig } from './lib/config.mjs';
 import { handlePreToolUse } from './lib/pre.mjs';
 import { handlePostToolUse } from './lib/post.mjs';
-import { handleSessionStart, handlePostCompact, handleUserPromptSubmit } from './lib/session.mjs';
+import { handleSessionStart, handleSessionStartOutsideMaven, handlePostCompact, handleUserPromptSubmit } from './lib/session.mjs';
 import { handleStop } from './lib/stop.mjs';
 
 /** Event name → handler(input, ctx) returning { exitCode, stdout, stderr } (sync or async). */
@@ -42,9 +42,14 @@ export async function main(argv, stdinText, env) {
     logError(sessionDir(projectDir(null, env), 'unknown'), `invalid JSON on stdin: ${err.message}`);
     return { ...EMPTY };
   }
-  const handler = HANDLERS[event];
-  const dir = handler ? findMavenRoot(input, env) : null;
-  if (!dir) return { ...EMPTY };
+  let handler = HANDLERS[event];
+  let dir = handler ? findMavenRoot(input, env) : null;
+  if (!dir) {
+    // Outside a Maven project the rules stay silent; only the update notice is worth a line.
+    if (event !== 'SessionStart') return { ...EMPTY };
+    handler = handleSessionStartOutsideMaven;
+    dir = projectDir(input, env);
+  }
   const stateDir = sessionDir(dir, input.session_id);
   try {
     const ctx = {

@@ -4,7 +4,8 @@ The short version. The full guide with a diagram for every hook: [forbxpg-java i
 
 One entry point, `hooks/java-hooks.mjs <Event> --harness claude|gigacode|codex`, reads the
 hook input from stdin and dispatches to `hooks/lib/`. Outside a Maven project (no
-`pom.xml`) every hook exits 0 silently. Any internal error also exits 0 (fail open) and is
+`pom.xml`) every hook exits 0 silently, except session start, which still shows the update
+notice when there is one. Any internal error also exits 0 (fail open) and is
 logged to `<tmp>/forbxpg-java/<project>/<session>/hook.log`. Hooks never write inside the
 project.
 

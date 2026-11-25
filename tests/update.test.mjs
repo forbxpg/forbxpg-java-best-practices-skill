@@ -360,6 +360,33 @@ test('REV3-2: a bracketed IPv6 host is a valid remote; helper transports still a
   assert.equal(installSource(receiptDir({ source: { remote: 'ext::sh' } })), null);
 });
 
+// ---- The notice outside a Maven project ----
+import { handleSessionStartOutsideMaven } from '../hooks/lib/session.mjs';
+import { main } from '../hooks/java-hooks.mjs';
+
+test('ANY-1: outside a Maven project SessionStart carries only the update notice, once per session', () => {
+  const { ctx } = sessionCtx({ latest: '0.4.0' });
+  ctx.projectDir = tempProject();
+  ctx.stateDir = sessionDir(ctx.projectDir, 'any-1');
+  const out = JSON.parse(handleSessionStartOutsideMaven({ source: 'startup' }, ctx).stdout);
+  assert.match(out.systemMessage, /update available 0\.3\.0 → 0\.4\.0/);
+  assert.match(out.hookSpecificOutput.additionalContext, /^\[forbxpg-java\] Update available/);
+  assert.doesNotMatch(out.hookSpecificOutput.additionalContext, /Maven ·/, 'no passport without a project');
+  assert.deepEqual(handleSessionStartOutsideMaven({ source: 'startup' }, ctx), {}, 'not twice in one session');
+});
+
+test('ANY-2: outside a Maven project, no notice → nothing at all; other events stay silent', async () => {
+  const { ctx } = sessionCtx({ latest: '0.3.0' });
+  ctx.projectDir = tempProject();
+  ctx.stateDir = sessionDir(ctx.projectDir, 'any-2');
+  assert.deepEqual(handleSessionStartOutsideMaven({ source: 'startup' }, ctx), {});
+  const cwd = tempProject();
+  const input = JSON.stringify({ session_id: 'any-2', cwd, prompt: 'hi', tool_name: 'write_file', tool_input: { file_path: `${cwd}/A.java`, content: '@Autowired private X x;' } });
+  for (const event of ['PreToolUse', 'PostToolUse', 'UserPromptSubmit', 'Stop']) {
+    assert.deepEqual(await main([event, '--harness', 'gigacode'], input, { ...process.env, FORBXPG_JAVA_UPDATE_CHECK: '0' }), { exitCode: 0, stdout: '', stderr: '' }, event);
+  }
+});
+
 // ---- 3.1: install.mjs --check ----
 test('R-CONF-2: install.mjs --check prints the installed and the latest version of its clone', () => {
   const remote = remoteWithTags('v0.3.0', 'v0.4.0');
