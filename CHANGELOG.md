@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.2 — 2026-11-25
 
 - Stop on Windows: Maven prints compile errors as `/C:/…`; the leading slash is dropped, so
   an error in a file the session changed blocks the turn again instead of being reported as
