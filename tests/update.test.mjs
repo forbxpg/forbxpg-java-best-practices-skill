@@ -120,3 +120,99 @@ test('Review Focus 2: a hung git is cut off by the timeout and recorded as an er
   assert.ok(Date.now() - start < 5000, `took ${Date.now() - start} ms`);
   assert.match(readCache('https://example.invalid/r.git', { cacheRoot }).error, /timed out|ETIMEDOUT|SIGTERM/i);
 });
+
+// ---- 2.2: SessionStart notice ----
+// helpers.mjs switches the check off for the suite; these tests are about the check itself.
+process.env.FORBXPG_JAVA_UPDATE_CHECK = '1';
+import { handleSessionStart } from '../hooks/lib/session.mjs';
+import { sessionDir } from '../hooks/lib/state.mjs';
+
+function sessionCtx({ version = '0.3.0', latest, checkedAt = Date.now(), updateCheck = true, harness = 'gigacode', clone = true } = {}) {
+  const lib = clone
+    ? join(fakeClone(version, 'https://github.com/forbxpg/forbxpg-java-best-practices-skill.git'), 'hooks', 'lib')
+    : join(tempProject({ 'hooks/lib/.keep': '' }), 'hooks', 'lib');
+  const cacheRoot = tempProject();
+  if (latest !== undefined) {
+    const file = cacheFile('https://github.com/forbxpg/forbxpg-java-best-practices-skill.git', { cacheRoot });
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, JSON.stringify({ checkedAt, latest, error: null }));
+  }
+  const spawned = [];
+  const project = tempProject({ 'pom.xml': BOOT4_POM });
+  const ctx = {
+    harness, projectDir: project, stateDir: sessionDir(project, `s-${Math.random()}`), platform: process.platform,
+    config: { anchor: null, stopCompile: true, contextWarnAt: 0.7, disable: [], updateCheck },
+    hooksLibDir: lib, updateCacheRoot: cacheRoot,
+    spawn: (cmd, args, opts) => { spawned.push({ cmd, args, opts }); return { unref() {} }; },
+  };
+  return { ctx, spawned, lib };
+}
+
+test('S-NOTE-3a: installed 0.3.0 and a cached 0.4.0 → the model and the user are told, with the clone command', () => {
+  const { ctx, spawned, lib } = sessionCtx({ latest: '0.4.0' });
+  const out = JSON.parse(handleSessionStart({ source: 'startup' }, ctx).stdout);
+  const context = out.hookSpecificOutput.additionalContext;
+  assert.equal(out.hookSpecificOutput.hookEventName, 'SessionStart');
+  assert.match(context, /Maven · Java 21 · Boot 4\.1/);
+  assert.match(context, /Update available: 0\.3\.0 → 0\.4\.0/);
+  assert.ok(context.includes(`git -C "${dirname(dirname(lib))}" pull --ff-only`));
+  assert.match(context, /Do not run it without their yes/);
+  assert.match(out.systemMessage, /0\.3\.0 → 0\.4\.0/);
+  assert.equal(spawned.length, 0, 'a fresh cache starts no check');
+});
+
+test('S-NOTE-3b: a cached version equal to or older than the installed one → plain passport, no notice', () => {
+  for (const latest of ['0.3.0', '0.2.0']) {
+    const { ctx } = sessionCtx({ latest });
+    const { stdout } = handleSessionStart({ source: 'startup' }, ctx);
+    assert.match(stdout, /^\[forbxpg-java\] Maven/);
+    assert.doesNotMatch(stdout, /Update available/);
+  }
+});
+
+test('R-CONF-1: updateCheck false → no notice and no background check, even with a stale cache', () => {
+  const { ctx, spawned } = sessionCtx({ latest: '0.9.0', checkedAt: 0, updateCheck: false });
+  assert.doesNotMatch(handleSessionStart({ source: 'startup' }, ctx).stdout, /Update available/);
+  assert.equal(spawned.length, 0);
+});
+
+test('R-CHECK-1 / Review Focus 3: a stale cache starts one detached, hidden background check', () => {
+  const { ctx, spawned, lib } = sessionCtx({});
+  handleSessionStart({ source: 'startup' }, ctx);
+  assert.equal(spawned.length, 1);
+  assert.equal(spawned[0].cmd, process.execPath);
+  assert.ok(spawned[0].args[0].endsWith('update.mjs'));
+  assert.deepEqual(spawned[0].args.slice(1), ['--check', 'https://github.com/forbxpg/forbxpg-java-best-practices-skill.git']);
+  assert.equal(spawned[0].opts.detached, true);
+  assert.equal(spawned[0].opts.windowsHide, true);
+  assert.equal(spawned[0].opts.stdio, 'ignore');
+  assert.ok(lib);
+});
+
+test('S-NOTE-3c: no install source → no check and no notice', () => {
+  const { ctx, spawned } = sessionCtx({ clone: false, latest: '0.9.0' });
+  assert.doesNotMatch(handleSessionStart({ source: 'startup' }, ctx).stdout, /Update available/);
+  assert.equal(spawned.length, 0);
+});
+
+test('a project install is told to update the clone and re-run install.mjs --update', () => {
+  const dir = tempProject({
+    '.gigacode/forbxpg-java/install-receipt.json': JSON.stringify({ name: 'forbxpg-java', version: '0.3.0', agent: 'gigacode', source: { remote: 'https://github.com/forbxpg/forbxpg-java-best-practices-skill.git' } }),
+    '.gigacode/forbxpg-java/hooks/lib/.keep': '',
+  });
+  const { ctx } = sessionCtx({ latest: '0.4.0' });
+  ctx.hooksLibDir = join(dir, '.gigacode/forbxpg-java/hooks/lib');
+  const context = JSON.parse(handleSessionStart({ source: 'startup' }, ctx).stdout).hookSpecificOutput.additionalContext;
+  assert.match(context, /install\.mjs --agent gigacode --scope project --update/);
+});
+
+test('FORBXPG_JAVA_UPDATE_CHECK=0 switches the notice and the check off for the environment', () => {
+  const { ctx, spawned } = sessionCtx({ latest: '0.9.0', checkedAt: 0 });
+  process.env.FORBXPG_JAVA_UPDATE_CHECK = '0';
+  try {
+    assert.doesNotMatch(handleSessionStart({ source: 'startup' }, ctx).stdout, /Update available/);
+    assert.equal(spawned.length, 0);
+  } finally {
+    process.env.FORBXPG_JAVA_UPDATE_CHECK = '1';
+  }
+});

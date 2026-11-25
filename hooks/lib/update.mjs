@@ -1,6 +1,6 @@
 // Update notice: where forbxpg-java was installed from, and whether a newer release tag exists there.
 import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, statSync, openSync, closeSync, realpathSync } from 'node:fs';
-import { spawnSync } from 'node:child_process';
+import { spawnSync, spawn as spawnAsync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
@@ -137,6 +137,36 @@ export function runCheck(remote, opts = {}) {
     // Only our own lock: another process's lock means its check is still running.
     if (locked) rmSync(lock, { force: true });
   }
+}
+
+/** Starts `node update.mjs --check <remote>` detached and hidden; the session does not wait for it. */
+export function spawnCheck(remote, spawn = spawnAsync) {
+  try {
+    const child = spawn(process.execPath, [fileURLToPath(import.meta.url), '--check', remote], { detached: true, stdio: 'ignore', windowsHide: true });
+    child.unref?.();
+  } catch {
+    // A check that cannot start is retried by the next session.
+  }
+}
+
+/**
+ * The update notice for this session, or null. Starts a background check when the cache is
+ * missing or older than a day. Returns { context, user } texts.
+ */
+export function updateNotice({ hooksLibDir, cacheRoot, spawn } = {}) {
+  const source = installSource(hooksLibDir);
+  if (!source) return null;
+  const cache = readCache(source.remote, cacheRoot ? { cacheRoot } : {});
+  if (isStale(cache)) spawnCheck(source.remote, spawn);
+  if (!cache?.latest || !newer(cache.latest, source.version)) return null;
+  const versions = `${source.version} → ${cache.latest}`;
+  const command = source.kind === 'clone'
+    ? `git -C "${source.cloneDir}" pull --ff-only, then the user opens a new session`
+    : `git pull in the user's forbxpg-java clone (ask them where it is), then node <clone>/install.mjs --agent ${source.agent ?? 'gigacode'} --scope project --update, and commit the result`;
+  return {
+    context: `[forbxpg-java] Update available: ${versions}.\nTell the user once, in one line. If they agree, run: ${command}. Do not run it without their yes.`,
+    user: `forbxpg-java: update available ${versions}`,
+  };
 }
 
 // Detached background run: node update.mjs --check <remote>

@@ -66,9 +66,9 @@ test('R-HOOK-5: state lives under os.tmpdir()/forbxpg-java and round-trips JSON'
 test('config: project file over home file over defaults', () => {
   const home = tempProject({ '.forbxpg-java.json': JSON.stringify({ anchor: true, contextWarnAt: 0.5 }) });
   const proj = tempProject({ 'forbxpg-java.json': JSON.stringify({ anchor: false }) });
-  assert.deepEqual(loadConfig(proj, home), { anchor: false, stopCompile: true, contextWarnAt: 0.5, disable: [] });
-  assert.deepEqual(loadConfig(tempProject(), tempProject()), { anchor: null, stopCompile: true, contextWarnAt: 0.7, disable: [] });
+  assert.deepEqual(loadConfig(proj, home), { anchor: false, stopCompile: true, contextWarnAt: 0.5, disable: [], updateCheck: true });
+  assert.deepEqual(loadConfig(tempProject(), tempProject()), { anchor: null, stopCompile: true, contextWarnAt: 0.7, disable: [], updateCheck: true });
   const broken = tempProject();
   writeFileSync(join(broken, 'forbxpg-java.json'), '{not json');
-  assert.deepEqual(loadConfig(broken, tempProject()), { anchor: null, stopCompile: true, contextWarnAt: 0.7, disable: [] });
+  assert.deepEqual(loadConfig(broken, tempProject()), { anchor: null, stopCompile: true, contextWarnAt: 0.7, disable: [], updateCheck: true });
 });

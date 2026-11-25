@@ -59,7 +59,7 @@ Files: create hooks/update-check.mjs; modify hooks/lib/update.mjs, tests/update.
    Run. Expected: FAIL.
 2. Implement. Commit `feat(update): background tag check with cache and lock`.
 
-- [ ] 2.2 SessionStart notice — verify: node --test passes
+- [x] 2.2 SessionStart notice — verify: node --test passes
 
 Covers: S-NOTE-3a, S-NOTE-3b · Test: scenario-first
 
