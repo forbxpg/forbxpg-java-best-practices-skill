@@ -79,4 +79,4 @@ In short; details are in [02](02-hooks-explained.md) and [03](03-hook-events.md)
 | After context compaction | Once, a recovery block of ≤ 500 tokens, with the rules the model broke |
 | End of turn | If the session changed `.java` files, a compilation; the model cannot finish while its own errors remain |
 
-Outside a Maven project the hooks do nothing: they exit with code 0 and no output.
+Outside a Maven project the hooks do nothing: they exit with code 0 and no output. The exception is `SessionStart`: it shows the update notice when there is one (no passport, no rules).

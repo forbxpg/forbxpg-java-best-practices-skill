@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- The update notice also comes in a session opened outside a Maven project (for example in
+  a general work folder). Everything else still stays silent there: no passport, no rules.
+
 ## 0.4.1 — 2026-11-25
 
 - Update notice, after review: commands for the model are in backticks and runnable as
