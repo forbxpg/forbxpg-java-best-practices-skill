@@ -55,6 +55,23 @@ Without hooks you get the rules, but nothing enforces them.
 In a Maven project, ask the agent to add a field with `@Autowired` to a service. The write
 must be refused with a `[forbxpg-java] J1:` message that names `@RequiredArgsConstructor`.
 
+## Updates
+
+Once a day, in the background, the session-start hook runs `git ls-remote --tags` against the
+remote the skill was installed from (the clone's `origin`, or `source.remote` in a project
+install's receipt) and caches the newest `vX.Y.Z` tag. When it is newer than the installed
+version, the next session starts with a one-line notice for you and, for the model, the
+update command: the model may run it only after your yes.
+
+- No network, a Bitbucket that asks for a password, or a timeout (5 s) → silence, retried a
+  day later. Credentials are never stored: a `https://user:password@` remote is recorded
+  without them.
+- Check now: `node install.mjs --check`.
+- Off: `"updateCheck": false` in `forbxpg-java.json`, or `FORBXPG_JAVA_UPDATE_CHECK=0`.
+- Installs from the Claude Code marketplace or from a zip are not checked.
+- A mirror on an internal Bitbucket must mirror the tags too, otherwise there is nothing to
+  compare with.
+
 ## Project install (team setup)
 
 `node install.mjs --agent gigacode|claude --scope project --project <repo>` copies the skills

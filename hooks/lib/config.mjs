@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const DEFAULTS = { anchor: null, stopCompile: true, contextWarnAt: 0.7, disable: [] };
+const DEFAULTS = { anchor: null, stopCompile: true, contextWarnAt: 0.7, disable: [], updateCheck: true };
 
 function readJson(path) {
   try {
@@ -17,5 +17,5 @@ function readJson(path) {
 export function loadConfig(projectDir, homeDir) {
   const merged = { ...DEFAULTS, ...readJson(join(homeDir, '.forbxpg-java.json')), ...readJson(join(projectDir, 'forbxpg-java.json')) };
   const disable = Array.isArray(merged.disable) ? merged.disable.map(String) : [];
-  return { anchor: merged.anchor, stopCompile: merged.stopCompile, contextWarnAt: merged.contextWarnAt, disable };
+  return { anchor: merged.anchor, stopCompile: merged.stopCompile, contextWarnAt: merged.contextWarnAt, disable, updateCheck: merged.updateCheck !== false };
 }

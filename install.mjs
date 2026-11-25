@@ -4,6 +4,8 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { installProject, uninstallProject } from './installer/project.mjs';
 import { installUser } from './installer/user.mjs';
+import { join } from 'node:path';
+import { installSource, runCheck, checkRemote, newer } from './hooks/lib/update.mjs';
 
 const REPO = dirname(fileURLToPath(import.meta.url));
 
@@ -17,6 +19,7 @@ Options
   --force           with --update: also replace files changed in the project
   --uninstall       remove exactly what the install wrote (from its receipt)
   --dry-run         print the plan, change nothing
+  --check           compare this clone's version with the newest release tag on its remote
   --help            this text
 
 User scope registers this folder with the agent's own CLI (gigacode extensions link;
@@ -27,7 +30,7 @@ the hooks into the agent's settings.json and writes install-receipt.json. Commit
 so the whole team gets it. Each developer approves the project hooks once in the agent.`;
 
 function parse(argv) {
-  const opts = { agent: null, scope: null, project: process.cwd(), update: false, force: false, uninstall: false, dryRun: false, help: false };
+  const opts = { agent: null, scope: null, project: process.cwd(), update: false, force: false, uninstall: false, dryRun: false, check: false, help: false };
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
     if (a === '--agent') opts.agent = argv[++i];
@@ -37,6 +40,7 @@ function parse(argv) {
     else if (a === '--force') opts.force = true;
     else if (a === '--uninstall') opts.uninstall = true;
     else if (a === '--dry-run') opts.dryRun = true;
+    else if (a === '--check') opts.check = true;
     else if (a === '--help' || a === '-h') opts.help = true;
     else throw new Error(`unknown option ${a}`);
   }
@@ -50,8 +54,29 @@ function report(title, result) {
   for (const f of result.removed) console.log(`  removed: ${f}`);
 }
 
+/** --check: installed version of this clone against the newest vX.Y.Z tag on its origin. */
+function check() {
+  const source = installSource(join(REPO, 'hooks', 'lib'));
+  if (!source) {
+    console.log('This folder is not a git clone with an origin remote; there is nothing to compare with.');
+    return 1;
+  }
+  let result = runCheck(source.remote);
+  if (result.skipped) result = checkRemote(source.remote);
+  if (result.error) {
+    console.log(`installed ${source.version}; could not read the release tags of ${source.remote}: ${result.error}`);
+    return 1;
+  }
+  console.log(`installed ${source.version}, latest ${result.latest ?? 'none (no vX.Y.Z tags)'} (${source.remote})`);
+  if (result.latest && newer(result.latest, source.version)) {
+    console.log(`update: git -C "${source.cloneDir}" pull --ff-only, then re-run install.mjs for project installs (--update)`);
+  }
+  return 0;
+}
+
 function main() {
   const opts = parse(process.argv.slice(2));
+  if (opts.check) return check();
   if (opts.help || !opts.agent || !opts.scope) {
     console.log(HELP);
     return opts.help ? 0 : 2;

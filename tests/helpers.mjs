@@ -6,6 +6,9 @@ import { fileURLToPath } from 'node:url';
 
 export const FIXTURES = join(dirname(fileURLToPath(import.meta.url)), 'fixtures');
 
+// No background release check from hooks run by the tests (it would reach the real remote of this clone).
+process.env.FORBXPG_JAVA_UPDATE_CHECK = '0';
+
 export function fixtureInput(name) {
   return JSON.parse(readFileSync(join(FIXTURES, 'inputs', `${name}.json`), 'utf8'));
 }

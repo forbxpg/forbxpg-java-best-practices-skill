@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { readState, writeState, recentViolations, recentRoles, logError } from './state.mjs';
 import { readPassport, passportLine } from './passport.mjs';
 import { anchorText, recoveryText, pickAnchorRules } from './anchor-text.mjs';
+import { updateNotice } from './update.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 /** Router locations: this repository (hooks/lib → skills) and a project install (.claude/forbxpg-java/hooks/lib → .claude/skills). */
@@ -55,7 +56,19 @@ export function handleSessionStart(input, ctx) {
   const line = `[forbxpg-java] ${passportLine(readPassport(ctx.projectDir))}`;
   // GigaCode loads the router through contextFileName; Claude Code and Codex get it here.
   const router = ctx.harness === 'gigacode' ? '' : routerBody();
-  return { stdout: router ? `${line}\n\n${router}\n` : `${line}\n` };
+  const text = router ? `${line}\n\n${router}\n` : `${line}\n`;
+  // FORBXPG_JAVA_UPDATE_CHECK=0 switches the check off for a whole environment (CI, air-gapped machines, the test suite).
+  const notice = ctx.config.updateCheck === false || process.env.FORBXPG_JAVA_UPDATE_CHECK === '0'
+    ? null
+    : updateNotice({ hooksLibDir: ctx.hooksLibDir ?? HERE, cacheRoot: ctx.updateCacheRoot, spawn: ctx.spawn });
+  if (!notice) return { stdout: text };
+  // JSON only when there is something for the user to see: the context and a visible system message.
+  return {
+    stdout: JSON.stringify({
+      systemMessage: notice.user,
+      hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: `${text}\n${notice.context}` },
+    }),
+  };
 }
 
 export function handlePostCompact(input, ctx) {

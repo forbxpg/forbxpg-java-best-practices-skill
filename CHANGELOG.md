@@ -3,13 +3,17 @@
 
 ## Unreleased
 
+- Update notice: once a day, in the background, the hooks compare the installed version with
+  the newest `vX.Y.Z` tag on the remote the skill was installed from and tell the user (and the
+  model, with the update command it may run only after the user's yes) at session start.
+  `updateCheck: false` or `FORBXPG_JAVA_UPDATE_CHECK=0` switches it off.
+- `install.mjs --check`; project installs record `source.remote` (without credentials) in
+  their receipt.
+- Release tags `v0.1.0`, `v0.2.0`, `v0.3.0`.
 - Stop: a module missing from the root pom's `<modules>` is reported as "could not verify",
   not as a failure in files the session did not change.
 - Installer on Windows: the `cmd.exe` line is wrapped once (a command path with spaces
   survives `/s`), and an argument containing `%` is refused instead of being expanded.
-
-## Unreleased
-
 - A Codex patch that touches two Maven projects is checked against each project's own root,
   so a committed gate file in the second project is still blocked (G2).
 - W1 reports `@Data` (and an unrestricted `@EqualsAndHashCode`) even when a safe
