@@ -6,9 +6,29 @@ import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-/** Cuts user:password@ (or token@) out of an http(s) URL; other URLs are returned unchanged. */
+/** Cuts credentials out of a URL: all of user:password@ (or token@) for http(s), the :password for other schemes (ssh needs its user). */
 export function stripCredentials(url) {
-  return String(url).replace(/^(https?:\/\/)[^@/]+@/i, '$1');
+  // Userinfo runs to the last @ before the path, so a password containing @ is cut whole.
+  return String(url).replace(/^([a-z][a-z0-9+.-]*:\/\/)([^/?#]*)@/i, (m, scheme, user) => (/^https?:/i.test(scheme) ? scheme : `${scheme}${user.split(':')[0]}@`));
+}
+
+// A receipt is committed to the project, so a teammate's PR can change it: only plain values pass.
+const VERSION = /^\d+\.\d+\.\d+$/;
+const AGENTS = new Set(['gigacode', 'claude']);
+// URL, scp-like user@host:path or an absolute local path; never an option (-x) or a helper transport (ext::, fd::); :: inside an IPv6 host is fine.
+const REMOTE = /^(?:(?:https?|ssh|git|file):\/\/\S+|[\w.-]+@[\w.-]+:\S+|\/[^\r\n]*|[A-Za-z]:[\\/][^\r\n]*)$/i;
+// A host or user that starts with - would reach ssh as an option (-oProxyCommand=…).
+export const validRemote = (remote) => typeof remote === 'string' && REMOTE.test(remote) && !/^[\w+.-]+::/.test(remote) && !/(?:^|:\/\/|@)-/.test(remote);
+// Quotes, $, backticks, % and ! mean something to sh or cmd.exe even inside double quotes.
+const SAFE_PATH = /^[^"`$%!\r\n]+$/;
+
+/**
+ * `git -C "<dir>" pull --ff-only`, or null when the path cannot be quoted safely: shell syntax, a trailing
+ * backslash that escapes the quote, or any backslash in a POSIX path (bash turns \\ into \ inside double quotes).
+ */
+export function pullCommand(dir) {
+  const posixBackslash = dir.startsWith('/') && dir.includes('\\');
+  return SAFE_PATH.test(dir) && !dir.endsWith('\\') && !posixBackslash ? `git -C "${dir}" pull --ff-only` : null;
 }
 
 const readJson = (path) => {
@@ -35,13 +55,15 @@ export function originOf(dir) {
 export function installSource(hooksLibDir) {
   const home = resolve(hooksLibDir, '..', '..');
   const receipt = readJson(join(home, 'install-receipt.json'));
-  if (receipt?.source?.remote && receipt.version) {
-    return { kind: 'project', version: receipt.version, remote: receipt.source.remote, agent: receipt.agent };
+  if (receipt) {
+    const remote = stripCredentials(receipt.source?.remote ?? '');
+    if (!VERSION.test(receipt.version ?? '') || !validRemote(remote) || !AGENTS.has(receipt.agent)) return null;
+    return { kind: 'project', version: receipt.version, remote, agent: receipt.agent };
   }
   if (!existsSync(join(home, '.git'))) return null;
   const version = readJson(join(home, '.claude-plugin', 'plugin.json'))?.version;
   const remote = originOf(home);
-  return version && remote ? { kind: 'clone', version, remote, cloneDir: home } : null;
+  return VERSION.test(version ?? '') && validRemote(remote) ? { kind: 'clone', version, remote, cloneDir: home } : null;
 }
 
 const SEMVER = /^v(\d+)\.(\d+)\.(\d+)$/;
@@ -89,8 +111,9 @@ export const isStale = (cache, now = Date.now()) => !cache || !Number.isFinite(c
  * `git` is [command, ...prefixArgs] so tests can stand in a fake.
  */
 export function checkRemote(remote, { git = ['git'], timeoutMs = 5000 } = {}) {
+  if (!validRemote(remote)) return { latest: null, error: 'unsupported remote' };
   const [cmd, ...prefix] = git;
-  const r = spawnSync(cmd, [...prefix, 'ls-remote', '--tags', '--refs', remote], {
+  const r = spawnSync(cmd, [...prefix, 'ls-remote', '--tags', '--refs', '--', remote], {
     encoding: 'utf8',
     timeout: timeoutMs,
     windowsHide: true,
@@ -140,12 +163,15 @@ export function runCheck(remote, opts = {}) {
 }
 
 /** Starts `node update.mjs --check <remote>` detached and hidden; the session does not wait for it. */
-export function spawnCheck(remote, spawn = spawnAsync) {
+export function spawnCheck(remote, spawn = spawnAsync, log = () => {}) {
   try {
     const child = spawn(process.execPath, [fileURLToPath(import.meta.url), '--check', remote], { detached: true, stdio: 'ignore', windowsHide: true });
+    // A failed start is reported later as an 'error' event; without a listener it would crash the hook.
+    child.on?.('error', log);
     child.unref?.();
-  } catch {
+  } catch (err) {
     // A check that cannot start is retried by the next session.
+    log(err);
   }
 }
 
@@ -153,18 +179,23 @@ export function spawnCheck(remote, spawn = spawnAsync) {
  * The update notice for this session, or null. Starts a background check when the cache is
  * missing or older than a day. Returns { context, user } texts.
  */
-export function updateNotice({ hooksLibDir, cacheRoot, spawn } = {}) {
+export function updateNotice({ hooksLibDir, cacheRoot, spawn, log } = {}) {
   const source = installSource(hooksLibDir);
   if (!source) return null;
   const cache = readCache(source.remote, cacheRoot ? { cacheRoot } : {});
-  if (isStale(cache)) spawnCheck(source.remote, spawn);
+  if (isStale(cache)) spawnCheck(source.remote, spawn, log);
   if (!cache?.latest || !newer(cache.latest, source.version)) return null;
   const versions = `${source.version} → ${cache.latest}`;
-  const command = source.kind === 'clone'
-    ? `git -C "${source.cloneDir}" pull --ff-only, then the user opens a new session`
-    : `git pull in the user's forbxpg-java clone (ask them where it is), then node <clone>/install.mjs --agent ${source.agent ?? 'gigacode'} --scope project --update, and commit the result`;
+  let action;
+  if (source.kind === 'project') {
+    action = `If they agree, ask where their forbxpg-java clone is, then run \`git -C "<clone>" pull --ff-only\` and \`node "<clone>/install.mjs" --agent ${source.agent} --scope project --update\` with <clone> replaced by that path, and commit the result. If the path has quotes, $, backticks, % or !, ends with a backslash, or is a Linux/macOS path with any backslash, ask the user to run them instead. Do not run them without their yes.`;
+  } else if (pullCommand(source.cloneDir)) {
+    action = `If they agree, run \`${pullCommand(source.cloneDir)}\`, then ask them to open a new session. Do not run it without their yes.`;
+  } else {
+    action = 'Ask them to run git pull --ff-only in their forbxpg-java clone and open a new session. Its path has characters that are unsafe in a command: do not run it yourself.';
+  }
   return {
-    context: `[forbxpg-java] Update available: ${versions}.\nTell the user once, in one line. If they agree, run: ${command}. Do not run it without their yes.`,
+    context: `[forbxpg-java] Update available: ${versions}.\nTell the user once, in one line. ${action}`,
     user: `forbxpg-java: update available ${versions}`,
   };
 }
