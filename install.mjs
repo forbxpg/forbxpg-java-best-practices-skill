@@ -67,7 +67,7 @@ function main() {
   }
   if (opts.scope !== 'project') throw new Error(`--scope must be user or project, got ${opts.scope}`);
   if (opts.uninstall) {
-    report(`Uninstalled forbxpg-java (${opts.agent}) from ${opts.project}`, uninstallProject({ projectDir: opts.project, agent: opts.agent }));
+    report(`${opts.dryRun ? 'Would uninstall' : 'Uninstalled'} forbxpg-java (${opts.agent}) from ${opts.project}`, uninstallProject({ projectDir: opts.project, agent: opts.agent, dryRun: opts.dryRun }));
     return 0;
   }
   const result = installProject({ repoDir: REPO, projectDir: opts.project, agent: opts.agent, dryRun: opts.dryRun, force: opts.force });

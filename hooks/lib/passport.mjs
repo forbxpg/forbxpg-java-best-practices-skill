@@ -114,10 +114,19 @@ function build(dir) {
   };
 }
 
-/** Passport of the Maven project in `projectDir`, cached by the root pom.xml mtime (ms) and size. */
+/** mtime and size of every pom the passport reads, so a module change invalidates the cache. */
+function pomStamp(projectDir) {
+  return collectPoms(projectDir).map(({ dir }) => {
+    const path = join(dir, 'pom.xml');
+    if (!existsSync(path)) return `${dir}:missing`;
+    const stat = statSync(path);
+    return `${dir}:${Math.floor(stat.mtimeMs)}:${stat.size}`;
+  }).join('|');
+}
+
+/** Passport of the Maven project in `projectDir`, cached until a pom it reads changes. */
 export function readPassport(projectDir) {
-  const stat = statSync(join(projectDir, 'pom.xml'));
-  const stamp = `${Math.floor(stat.mtimeMs)}:${stat.size}`;
+  const stamp = pomStamp(projectDir);
   const cacheDir = projectCacheDir(projectDir);
   const cacheFile = join(cacheDir, 'passport.json');
   try {

@@ -1,7 +1,8 @@
 // settings.json handling for project installs: strict JSON in, our hook entries merged or removed.
 
-const OURS = 'forbxpg-java';
-const isOurs = (hook) => typeof hook?.command === 'string' && hook.command.includes(OURS);
+/** Our entrypoint, not every command whose path happens to contain the project name. */
+const OURS = 'forbxpg-java/hooks/java-hooks.mjs';
+const isOurs = (hook) => typeof hook?.command === 'string' && hook.command.replace(/\\/g, '/').includes(OURS);
 
 /** Parses settings text; '' → {}. Comments or trailing commas are refused, never rewritten. */
 export function parseSettings(text, path) {

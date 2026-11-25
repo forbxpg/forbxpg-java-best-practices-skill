@@ -16,7 +16,11 @@ export function isMavenProject(dir) {
   return existsSync(join(dir, 'pom.xml'));
 }
 
-/** Highest folder of the unbroken pom.xml chain at or above `start` (a module climbs to its aggregator). */
+/** Highest folder of the unbroken pom.xml chain at or above `start`, or null. A module climbs to its aggregator. */
+export function mavenRootAbove(start) {
+  return topPomDir(resolve(start));
+}
+
 function topPomDir(start) {
   let found = null;
   for (let dir = resolve(start); ; dir = dirname(dir)) {
@@ -45,7 +49,7 @@ export function findMavenRoot(input, env) {
   const base = projectDir(input, env);
   const tool = normalizeTool(input);
   const file = tool.filePath ?? tool.files?.[0]?.path;
-  return (file && topPomDir(dirname(resolve(base, file)))) || topPomDir(base) || onlyChildProject(base);
+  return (file && mavenRootAbove(dirname(resolve(base, file)))) || mavenRootAbove(base) || onlyChildProject(base);
 }
 
 function pick(obj, ...keys) {

@@ -2,6 +2,7 @@
 import { existsSync, statSync, realpathSync } from 'node:fs';
 import { dirname, join, relative, resolve, normalize } from 'node:path';
 import { readState, writeState, sha1, changedFiles } from './state.mjs';
+import { mavenRootAbove } from './io.mjs';
 import { mavenCommand, runCompile as realRunCompile, parseCompileErrors } from './maven.mjs';
 
 const COMPILE_TIMEOUT_MS = 180_000;
@@ -45,20 +46,41 @@ export async function handleStop(input, ctx, runCompile = realRunCompile) {
   const fingerprint = sha1(changed.map((f) => `${f}:${statSync(f).mtimeMs}`).sort().join('\n'));
   if (readState(ctx.stateDir, 'lastOkFingerprint', null) === fingerprint) return {};
 
-  const modules = [...new Set(changed.map((f) => moduleOf(resolve(f), ctx.projectDir)))];
-  const result = await runCompile(mavenCommand(ctx.projectDir, modules, ctx.platform), COMPILE_TIMEOUT_MS);
-  if (result.timedOut) return notice('[forbxpg-java] Could not verify the build: the compile timed out.');
-  const { output } = result;
-  if (result.ok) {
+  // A patch can change Java files in two Maven projects. The session root is the first file's
+  // project, so compiling only that root would mark the other project's files verified.
+  const groups = new Map();
+  for (const file of changed) {
+    const root = mavenRootAbove(dirname(resolve(file))) ?? ctx.projectDir;
+    const list = groups.get(root) ?? [];
+    list.push(file);
+    groups.set(root, list);
+  }
+  const own = [];
+  let timedOut = false;
+  let unverifiable = false;
+  let foreign = false;
+  for (const [root, files] of groups) {
+    const modules = [...new Set(files.map((f) => moduleOf(resolve(f), root)))];
+    const result = await runCompile(mavenCommand(root, modules, ctx.platform), COMPILE_TIMEOUT_MS);
+    if (result.timedOut) {
+      timedOut = true;
+      break;
+    }
+    if (result.ok) continue;
+    const errors = parseCompileErrors(result.output);
+    const mine = errors.filter((e) => files.some((f) => samePath(f, e.file)));
+    if (mine.length > 0) own.push(...mine.map((e) => ({ ...e, root })));
+    else if (errors.length === 0 && UNVERIFIABLE.test(result.output)) unverifiable = true;
+    else foreign = true;
+  }
+  if (timedOut) return notice('[forbxpg-java] Could not verify the build: the compile timed out.');
+  if (own.length === 0 && !unverifiable && !foreign) {
     writeState(ctx.stateDir, 'lastOkFingerprint', fingerprint);
     writeState(ctx.stateDir, 'blocksSinceOk', 0);
     return {};
   }
-
-  const errors = parseCompileErrors(output);
-  const own = errors.filter((e) => changed.some((f) => samePath(f, e.file)));
   if (own.length === 0) {
-    if (errors.length === 0 && UNVERIFIABLE.test(output)) return notice('[forbxpg-java] Could not verify the build offline (missing artifacts or Maven not available). Run the build yourself.');
+    if (unverifiable) return notice('[forbxpg-java] Could not verify the build offline (missing artifacts or Maven not available). Run the build yourself.');
     return notice('[forbxpg-java] The change could not be verified: the build fails in files this session did not change.');
   }
   // Counted since the last successful compile, not per change set: every fix attempt changes the files.
@@ -67,6 +89,6 @@ export async function handleStop(input, ctx, runCompile = realRunCompile) {
     return notice('[forbxpg-java] The code still does not compile after two attempts; stopping without verification.');
   }
   writeState(ctx.stateDir, 'blocksSinceOk', blocks + 1);
-  const lines = [...new Set(own.map((e) => `- ${relative(realOrSelf(ctx.projectDir), realOrSelf(e.file)).replace(/\\/g, '/')}:${e.line} ${e.message}`))].slice(0, 10);
+  const lines = [...new Set(own.map((e) => `- ${relative(realOrSelf(e.root), realOrSelf(e.file)).replace(/\\/g, '/')}:${e.line} ${e.message}`))].slice(0, 10);
   return block(`[forbxpg-java] The code does not compile:\n${lines.join('\n')}\nFix these errors before you finish.`);
 }

@@ -5,6 +5,7 @@ import { join, dirname, relative } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { installProject, uninstallProject } from '../installer/project.mjs';
+import { runCommand, windowsCommandLine } from '../installer/user.mjs';
 import { tempProject, BOOT4_POM } from './helpers.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -105,6 +106,64 @@ test('R-INST-8: dry run reports the plan and writes nothing', () => {
   assert.deepEqual(snapshot(dir), before);
 });
 
+test('invalid hook entries fail before any project file is copied', () => {
+  const dir = tempProject({ 'pom.xml': BOOT4_POM, '.gigacode/settings.json': '{"hooks":{"PreToolUse":[null]}}\n' });
+  assert.throws(() => installProject({ repoDir: REPO, projectDir: dir, agent: 'gigacode' }));
+  assert.ok(!existsSync(join(dir, '.gigacode/skills')));
+  assert.ok(!existsSync(join(dir, '.gigacode/forbxpg-java')));
+});
+
+test('uninstall dry-run deletes nothing', () => {
+  const dir = tempProject({ 'pom.xml': BOOT4_POM });
+  installProject({ repoDir: REPO, projectDir: dir, agent: 'gigacode' });
+  const before = snapshot(dir);
+  const result = uninstallProject({ projectDir: dir, agent: 'gigacode', dryRun: true });
+  assert.ok(result.removed.length > 10);
+  assert.deepEqual(snapshot(dir), before);
+});
+
+test('CLI --dry-run uninstall does not delete files', () => {
+  const dir = tempProject({ 'pom.xml': BOOT4_POM });
+  installProject({ repoDir: REPO, projectDir: dir, agent: 'gigacode' });
+  const before = snapshot(dir);
+  const r = spawnSync(process.execPath, [
+    join(REPO, 'install.mjs'), '--agent', 'gigacode', '--scope', 'project', '--project', dir, '--uninstall', '--dry-run',
+  ], { encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /Would uninstall/);
+  assert.deepEqual(snapshot(dir), before);
+});
+
+test('uninstall refuses broken settings before deleting hook files', () => {
+  const dir = tempProject({ 'pom.xml': BOOT4_POM });
+  installProject({ repoDir: REPO, projectDir: dir, agent: 'gigacode' });
+  const hook = join(dir, '.gigacode/forbxpg-java/hooks/java-hooks.mjs');
+  writeFileSync(join(dir, '.gigacode/settings.json'), '{ "hooks": {}, }\n');
+  assert.throws(() => uninstallProject({ projectDir: dir, agent: 'gigacode' }), /not plain JSON/);
+  assert.ok(existsSync(hook));
+});
+
+test('uninstall keeps a router import that was already in GIGACODE.md', () => {
+  const original = '# Project\n\n@.gigacode/skills/using-java-best-practices/SKILL.md\n';
+  const dir = tempProject({ 'pom.xml': BOOT4_POM, 'GIGACODE.md': original });
+  installProject({ repoDir: REPO, projectDir: dir, agent: 'gigacode' });
+  uninstallProject({ projectDir: dir, agent: 'gigacode' });
+  assert.equal(read(dir, 'GIGACODE.md'), original);
+});
+
+test('a foreign command that only contains forbxpg-java is not treated as ours', () => {
+  const command = 'node /tools/forbxpg-java-audit/check.mjs';
+  const settings = `{"hooks":{"PreToolUse":[{"hooks":[{"type":"command","command":${JSON.stringify(command)}}]}]}}\n`;
+  const dir = tempProject({ 'pom.xml': BOOT4_POM, '.gigacode/settings.json': settings });
+  installProject({ repoDir: REPO, projectDir: dir, agent: 'gigacode' });
+  const installed = JSON.parse(read(dir, '.gigacode/settings.json'));
+  const commands = installed.hooks.PreToolUse.flatMap((g) => g.hooks.map((h) => h.command));
+  assert.ok(commands.includes(command));
+  uninstallProject({ projectDir: dir, agent: 'gigacode' });
+  const restored = JSON.parse(read(dir, '.gigacode/settings.json'));
+  assert.equal(restored.hooks.PreToolUse[0].hooks[0].command, command);
+});
+
 test('Review Focus 1: settings.json with comments is refused and left untouched', () => {
   const jsonc = '{\n  // team settings\n  "permissions": {},\n}\n';
   const dir = tempProject({ 'pom.xml': BOOT4_POM, '.gigacode/settings.json': jsonc });
@@ -193,6 +252,26 @@ function fakeRunner(status = 0) {
   };
   return { run, calls };
 }
+
+test('Windows command line keeps a repository path with spaces as one argument', () => {
+  assert.equal(
+    windowsCommandLine('gigacode', ['extensions', 'link', 'C:\\Users\\Jane Doe\\forbxpg-java']),
+    'gigacode extensions link "C:\\Users\\Jane Doe\\forbxpg-java"',
+  );
+  const calls = [];
+  const spawn = (file, args, opts) => {
+    calls.push({ file, args, verbatim: opts.windowsVerbatimArguments });
+    return { status: 0, stdout: '', stderr: '' };
+  };
+  const quoted = runCommand('gigacode', ['extensions', 'link', 'C:\\Users\\Jane Doe\\forbxpg-java'], { platform: 'win32', spawn });
+  assert.equal(quoted.status, 0);
+  assert.equal(calls[0].file, process.env.ComSpec || 'cmd.exe');
+  assert.deepEqual(calls[0].args, ['/d', '/s', '/c', 'gigacode extensions link "C:\\Users\\Jane Doe\\forbxpg-java"']);
+  assert.equal(calls[0].verbatim, true);
+  const r = runCommand(process.execPath, ['-e', 'process.stdout.write(process.argv[1])', 'Jane Doe']);
+  assert.equal(r.status, 0);
+  assert.equal(r.output, 'Jane Doe');
+});
 
 test('user scope, GigaCode: link answers Y; uninstall removes the extension', () => {
   const fake = fakeRunner();

@@ -23,18 +23,22 @@ Use the wrapper when the project has one; on Windows `mvnw.cmd`.
 ## Getting the evidence
 
 ```bash
-./mvnw -B verify > "${TMPDIR:-/tmp}/build.log" 2>&1; echo "exit=$?"
+log="${TMPDIR:-/tmp}/forbxpg-java-build-$$.log"
+./mvnw -B verify > "$log" 2>&1; echo "exit=$?"
 ```
 
-Keep the log outside the project (it must not end up in a commit). Then read, from it:
+Keep the log outside the project (it must not end up in a commit). Use that same `$log`
+for every read of this run: a fixed `build.log` is shared by every session in the temp
+directory, and a second build truncates the first. Then read, from it:
 
 - `Tests run: N, Failures: F, Errors: E, Skipped: S` — one summary for Surefire, one for
   Failsafe when `*IT` tests exist;
 - `BUILD SUCCESS` / `BUILD FAILURE`;
 - the first `[ERROR]` lines when it failed.
 
-On Windows (`cmd`): `mvnw.cmd -B verify > "%TEMP%\build.log" 2>&1`, then
-`echo exit=%ERRORLEVEL%`, and read it with `findstr /C:"Tests run" /C:"BUILD" "%TEMP%\build.log"`.
+On Windows (`cmd`): `set "LOG=%TEMP%\forbxpg-java-build-%RANDOM%.log"`, then
+`mvnw.cmd -B verify > "%LOG%" 2>&1` and `echo exit=%ERRORLEVEL%`, and read it with
+`findstr /C:"Tests run" /C:"BUILD" "%LOG%"`. Keep the same `LOG` for the read.
 
 ## The Verification block
 

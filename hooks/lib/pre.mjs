@@ -1,8 +1,8 @@
 // PreToolUse: block hard-rule violations before the write happens (exit 2 + stderr reach the model).
 import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { normalizeTool } from './io.mjs';
-import { writeState, sha1, markViolated } from './state.mjs';
+import { dirname, resolve } from 'node:path';
+import { normalizeTool, mavenRootAbove } from './io.mjs';
+import { writeState, sha1, markViolated, logError } from './state.mjs';
 import { readPassport } from './passport.mjs';
 import { findViolations, newViolations, formatViolation } from './rules.mjs';
 import { applyEdit } from './edit.mjs';
@@ -25,7 +25,14 @@ export function readText(path) {
 const enabled = (ctx) => (v) => !(ctx.config.disable ?? []).includes(v.id);
 
 function block(violations, ctx) {
-  for (const v of violations) markViolated(ctx.stateDir, v.id);
+  // Tracking is a record of the refusal, not the refusal itself: a full disk must not let the write through.
+  for (const v of violations) {
+    try {
+      markViolated(ctx.stateDir, v.id);
+    } catch (err) {
+      logError(ctx.stateDir, err);
+    }
+  }
   return { exitCode: 2, stdout: '', stderr: `${violations.map(formatViolation).join('\n')}\n` };
 }
 
@@ -34,17 +41,22 @@ function resultOf(tool, original) {
   return (tool.edits ?? [tool]).reduce((text, e) => applyEdit(text, e.oldString, e.newString, e.replaceAll), original);
 }
 
-/** Codex patches: protected files are checked, Java snapshots are saved for PostToolUse to compare. */
+/** Codex patches: each file is checked against the Maven root that owns it, so a second project cannot skip G2. */
 function handlePatch(input, tool, ctx) {
-  const passport = readPassport(ctx.projectDir);
   const found = [];
   for (const file of tool.files) {
     const abs = resolve(ctx.cwd ?? ctx.projectDir, file.path);
+    const root = mavenRootAbove(dirname(abs)) ?? ctx.projectDir;
     const original = readText(abs);
-    const guard = checkProtectedPath(abs, ctx.projectDir, { original, result: file.op === 'delete' ? '' : null });
+    const guard = checkProtectedPath(abs, root, { original, result: file.op === 'delete' ? '' : null });
     if (guard) found.push(guard);
     if (abs.endsWith('.java') && file.op === 'update') {
-      writeState(ctx.stateDir, snapshotKey(input, abs), findViolations(original, { path: abs, passport }));
+      try {
+        const passport = readPassport(root);
+        writeState(ctx.stateDir, snapshotKey(input, abs), findViolations(original, { path: abs, passport }));
+      } catch (err) {
+        logError(ctx.stateDir, err);
+      }
     }
   }
   const active = found.filter(enabled(ctx));
@@ -69,7 +81,11 @@ export function handlePreToolUse(input, ctx) {
 
   const rulesCtx = { path: abs, passport: readPassport(ctx.projectDir) };
   const before = findViolations(original, rulesCtx);
-  writeState(ctx.stateDir, snapshotKey(input, abs), before);
+  try {
+    writeState(ctx.stateDir, snapshotKey(input, abs), before);
+  } catch (err) {
+    logError(ctx.stateDir, err);
+  }
   const fresh = newViolations(before, findViolations(result, rulesCtx)).filter((v) => v.severity === 'hard').filter(enabled(ctx));
   return fresh.length > 0 ? block(fresh, ctx) : {};
 }

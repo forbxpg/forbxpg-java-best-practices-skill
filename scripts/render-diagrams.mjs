@@ -4,8 +4,8 @@
 // pptr.json can point mmdc at an installed browser: {"executablePath": "/path/to/chrome"}.
 import { readdirSync, existsSync, mkdirSync } from 'node:fs';
 import { join, dirname, resolve, basename } from 'node:path';
-import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { runCommand } from '../installer/user.mjs';
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const index = process.argv.indexOf('--puppeteer-config');
@@ -19,10 +19,10 @@ for (const lang of readdirSync(join(repo, 'docs'))) {
   mkdirSync(out, { recursive: true });
   for (const file of readdirSync(src).filter((f) => f.endsWith('.mmd')).sort()) {
     const png = join(out, `${basename(file, '.mmd')}.png`);
-    const r = spawnSync('mmdc', ['-i', join(src, file), '-o', png, '-b', 'white', '-s', '2', ...config], { encoding: 'utf8', shell: process.platform === 'win32' });
+    const r = runCommand('mmdc', ['-i', join(src, file), '-o', png, '-b', 'white', '-s', '2', ...config]);
     const ok = r.status === 0 && existsSync(png);
     if (!ok) failed += 1;
-    console.log(`${ok ? 'ok  ' : 'FAIL'} ${lang}/${file}${ok ? '' : `\n${r.stderr || r.error}`}`);
+    console.log(`${ok ? 'ok  ' : 'FAIL'} ${lang}/${file}${ok ? '' : `\n${r.output}`}`);
   }
 }
 process.exitCode = failed === 0 ? 0 : 1;

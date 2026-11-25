@@ -1,8 +1,8 @@
 // PostToolUse: remarks for what this write introduced, plus the rules of a role seen the first time.
 import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { normalizeTool } from './io.mjs';
-import { readState, removeState, addChangedFile, claimOnce, markViolated, markRoleSeen } from './state.mjs';
+import { dirname, resolve } from 'node:path';
+import { normalizeTool, mavenRootAbove } from './io.mjs';
+import { readState, removeState, addChangedFile, claimOnce, releaseClaim, hasMarker, markViolated, markRoleSeen, logError } from './state.mjs';
 import { readPassport } from './passport.mjs';
 import { findViolations, newViolations, formatViolation } from './rules.mjs';
 import { snapshotKey } from './pre.mjs';
@@ -41,20 +41,43 @@ export function handlePostToolUse(input, ctx) {
   for (const { abs, before } of writtenFiles(input, tool, ctx)) {
     if (!existsSync(abs)) continue;
     const text = readFileSync(abs, 'utf8');
+    const root = mavenRootAbove(dirname(abs)) ?? ctx.projectDir;
     if (abs.endsWith('.java')) {
-      addChangedFile(ctx.stateDir, abs);
+      try {
+        addChangedFile(ctx.stateDir, abs);
+      } catch (err) {
+        logError(ctx.stateDir, err);
+      }
       if (before) {
         // Hard ones too: an edit that slipped past PreToolUse (or a Codex patch) still gets reported.
-        const after = findViolations(text, { path: abs, passport: readPassport(ctx.projectDir) });
+        const after = findViolations(text, { path: abs, passport: readPassport(root) });
         const fresh = newViolations(before, after).filter((v) => !disabled.includes(v.id));
-        for (const v of fresh) markViolated(ctx.stateDir, v.id);
+        for (const v of fresh) {
+          try {
+            markViolated(ctx.stateDir, v.id);
+          } catch (err) {
+            logError(ctx.stateDir, err);
+          }
+        }
         messages.push(...fresh.map(formatViolation));
       }
     }
-    const role = detectRole(abs, text);
-    if (role && claimOnce(ctx.stateDir, 'roles', role)) {
-      markRoleSeen(ctx.stateDir, role);
-      messages.push(`[forbxpg-java] ${role} rules:\n${roleRules(role, readPassport(ctx.projectDir))}`);
+    try {
+      const role = detectRole(abs, text);
+      if (!role) continue;
+      const claimed = claimOnce(ctx.stateDir, 'roles', role);
+      // A 0.2 session claimed the role without the ordered roleSeen marker the anchor reads.
+      if (claimed || !hasMarker(ctx.stateDir, 'roleSeen', role)) {
+        try {
+          markRoleSeen(ctx.stateDir, role);
+        } catch (err) {
+          logError(ctx.stateDir, err);
+          if (claimed) releaseClaim(ctx.stateDir, 'roles', role);
+        }
+      }
+      if (claimed) messages.push(`[forbxpg-java] ${role} rules:\n${roleRules(role, readPassport(root))}`);
+    } catch (err) {
+      logError(ctx.stateDir, err);
     }
   }
   if (messages.length === 0) return {};
