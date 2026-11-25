@@ -149,6 +149,21 @@ test('parseCompileErrors reads Maven compiler lines on POSIX and Windows paths',
   ]);
 });
 
+test('LIVE-1: Maven on Windows prints /C:/… — the leading slash is dropped so the error matches the changed file', () => {
+  const out = '[ERROR] /C:/Users/u/AppData/Local/Temp/fj-live/A/service/src/main/java/a/ProbeService.java:[20,9] cannot find symbol';
+  assert.deepEqual(parseCompileErrors(out), [
+    { file: 'C:/Users/u/AppData/Local/Temp/fj-live/A/service/src/main/java/a/ProbeService.java', line: 20, message: 'cannot find symbol' },
+  ]);
+});
+
+test('LIVE-1: on Windows a compile error printed as /C:/… in a changed file blocks the turn', { skip: process.platform !== 'win32' }, async () => {
+  const { dir, ctx } = setup();
+  const fake = fakeCompile({ output: `[ERROR] /${join(dir, FOO).replace(/\\/g, '/')}:[3,5] cannot find symbol` });
+  const out = parse(await handleStop({ context_usage: 0.1 }, ctx, fake.run));
+  assert.equal(out.decision, 'block');
+  assert.match(out.reason, /Foo\.java:3/);
+});
+
 test('compile errors reported under the real path still match files changed through a symlink', async () => {
   const { dir, ctx } = setup();
   const { symlinkSync, realpathSync } = await import('node:fs');
@@ -167,4 +182,18 @@ test('a module missing from the reactor is reported as unverifiable, not as a br
   assert.equal(out.decision, undefined);
   assert.match(out.systemMessage, /Could not verify/);
   assert.doesNotMatch(out.systemMessage, /did not change/);
+});
+
+test('LIVE-2: a wrapper that cannot start or a JDK that rejects .mvn/jvm.config is unverifiable, not a broken build elsewhere', async () => {
+  const outputs = [
+    "Rename-Item : Access to the path 'C:\\Users\\u\\.m2\\wrapper\\dists\\apache-maven-3.9.16' is denied.\nCannot start maven from wrapper",
+    'Unrecognized option: --sun-misc-unsafe-memory-access=allow\nError: Could not create the Java Virtual Machine.\nError: A fatal exception has occurred. Program will exit.',
+  ];
+  for (const output of outputs) {
+    const { ctx } = setup();
+    const out = parse(await handleStop({}, ctx, fakeCompile({ output }).run));
+    assert.equal(out.decision, undefined);
+    assert.match(out.systemMessage, /Could not verify/, output);
+    assert.doesNotMatch(out.systemMessage, /did not change/);
+  }
 });
