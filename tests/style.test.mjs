@@ -218,3 +218,17 @@ test('PROBE-2: --preview uses the passport of the current Maven project and mark
   assert.doesNotMatch(r.stdout, /Boot 4\.1/);
   assert.match(r.stdout, /Sample data, passport of this project/);
 });
+
+test('CI-1: a Windows checkout with CRLF files still gives a clean banner and phrases', () => {
+  const repo = join(tempProject(), 'crlf');
+  cpSync(join(REPO, 'gigacode'), join(repo, 'gigacode'), { recursive: true });
+  for (const f of ['banner.txt', 'phrases.json']) {
+    const p = join(repo, 'gigacode', f);
+    writeFileSync(p, readFileSync(p, 'utf8').replace(/\n/g, '\r\n'));
+  }
+  const dir = home({});
+  installStyle({ repoDir: repo, homeDir: dir });
+  const ui = settingsOf(dir).ui;
+  assert.equal(ui.customAsciiArt.large.includes('\r'), false);
+  assert.equal(ui.customWittyPhrases.length, 20);
+});

@@ -1,0 +1,3 @@
+# Files GigaCode reads byte for byte: keep LF on Windows checkouts too.
+gigacode/** text eol=lf
+commands/** text eol=lf

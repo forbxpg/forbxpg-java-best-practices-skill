@@ -50,7 +50,7 @@ export function styleValues({ repoDir, homeDir, dark = false }) {
     customBannerTitle: 'forbxpg-java',
     customBannerSubtitle: 'Java · Spring Boot · guarded by hooks',
     // Narrow terminals get the name only, so the logo never collides with the info box.
-    customAsciiArt: { small: 'forbxpg-java', large: asset('banner.txt').replace(/\n$/, '') },
+    customAsciiArt: { small: 'forbxpg-java', large: asset('banner.txt').replace(/\r\n/g, '\n').replace(/\n$/, '') },
     customWittyPhrases: JSON.parse(asset('phrases.json')),
   };
 }
@@ -129,7 +129,7 @@ export function previewStyle({ repoDir, color, cwd = process.cwd() }) {
   const root = mavenRootAbove(cwd) ?? onlyChildProject(cwd);
   const passport = root ? readPassport(root) : { java: '21', boot: '4.1.1' };
   const render = (inp, data) => renderStatusLine(inp, { rules: [], compactions: 0, update: null, passport: null, build: null, ...data }, { color, warnAt: 0.7, now });
-  const banner = readFileSync(join(repoDir, 'gigacode', 'banner.txt'), 'utf8').replace(/\n$/, '');
+  const banner = readFileSync(join(repoDir, 'gigacode', 'banner.txt'), 'utf8').replace(/\r\n/g, '\n').replace(/\n$/, '');
   return [
     `Sample data${root ? ', passport of this project' : ''}.`,
     'Status line, all good:',
