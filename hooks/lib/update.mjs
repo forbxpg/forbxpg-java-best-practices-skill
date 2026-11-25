@@ -1,7 +1,10 @@
 // Update notice: where forbxpg-java was installed from, and whether a newer release tag exists there.
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, statSync, openSync, closeSync, realpathSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { join, resolve } from 'node:path';
+import { createHash } from 'node:crypto';
+import { tmpdir } from 'node:os';
+import { join, resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /** Cuts user:password@ (or token@) out of an http(s) URL; other URLs are returned unchanged. */
 export function stripCredentials(url) {
@@ -65,3 +68,83 @@ export function latestTag(tags) {
   }
   return best;
 }
+
+export const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const LOCK_TTL_MS = 60 * 1000;
+const DEFAULT_CACHE_ROOT = () => join(tmpdir(), 'forbxpg-java', 'update-check');
+
+/** One cache file per remote: { checkedAt, latest, error }. */
+export function cacheFile(remote, { cacheRoot = DEFAULT_CACHE_ROOT() } = {}) {
+  return join(cacheRoot, `${createHash('sha1').update(remote).digest('hex').slice(0, 16)}.json`);
+}
+
+export function readCache(remote, opts = {}) {
+  return readJson(cacheFile(remote, opts));
+}
+
+export const isStale = (cache, now = Date.now()) => !cache || !Number.isFinite(cache.checkedAt) || now - cache.checkedAt > CHECK_INTERVAL_MS;
+
+/**
+ * `git ls-remote --tags` without prompts and with a hard timeout. Returns { latest, error }.
+ * `git` is [command, ...prefixArgs] so tests can stand in a fake.
+ */
+export function checkRemote(remote, { git = ['git'], timeoutMs = 5000 } = {}) {
+  const [cmd, ...prefix] = git;
+  const r = spawnSync(cmd, [...prefix, 'ls-remote', '--tags', '--refs', remote], {
+    encoding: 'utf8',
+    timeout: timeoutMs,
+    windowsHide: true,
+    env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'never', GIT_ASKPASS: '', SSH_ASKPASS: '' },
+  });
+  if (r.error) return { latest: null, error: r.error.code === 'ETIMEDOUT' ? `timed out after ${timeoutMs} ms` : String(r.error.message) };
+  if (r.signal) return { latest: null, error: `timed out (${r.signal})` };
+  if (r.status !== 0) return { latest: null, error: (r.stderr || `git exited ${r.status}`).trim().split('\n')[0] };
+  const tags = r.stdout.split(/\r?\n/).map((line) => line.split('\t')[1]).filter(Boolean);
+  return { latest: latestTag(tags), error: null };
+}
+
+/** Takes the per-remote lock unless another check holds a fresh one. */
+function takeLock(lock) {
+  try {
+    if (Date.now() - statSync(lock).mtimeMs < LOCK_TTL_MS) return false;
+    rmSync(lock, { force: true });
+  } catch {
+    // no lock yet
+  }
+  try {
+    closeSync(openSync(lock, 'wx'));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Checks the remote once and writes the cache; never throws. */
+export function runCheck(remote, opts = {}) {
+  const file = cacheFile(remote, opts);
+  const lock = `${file}.lock`;
+  let locked = false;
+  try {
+    mkdirSync(dirname(file), { recursive: true });
+    locked = takeLock(lock);
+    if (!locked) return { skipped: 'locked' };
+    const result = checkRemote(remote, opts);
+    writeFileSync(file, JSON.stringify({ checkedAt: Date.now(), latest: result.latest, error: result.error }));
+    return result;
+  } catch (err) {
+    return { latest: null, error: String(err?.message ?? err) };
+  } finally {
+    // Only our own lock: another process's lock means its check is still running.
+    if (locked) rmSync(lock, { force: true });
+  }
+}
+
+// Detached background run: node update.mjs --check <remote>
+function isEntryPoint() {
+  try {
+    return Boolean(process.argv[1]) && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
+if (isEntryPoint() && process.argv[2] === '--check' && process.argv[3]) runCheck(process.argv[3]);

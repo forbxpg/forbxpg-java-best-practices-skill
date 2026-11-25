@@ -47,7 +47,7 @@ Interfaces:
 
 ## 2. Background check and notice
 
-- [ ] 2.1 Cache, lock and ls-remote check — verify: node --test tests/update.test.mjs passes
+- [x] 2.1 Cache, lock and ls-remote check — verify: node --test tests/update.test.mjs passes
 
 Covers: — · Test: scenario-first
 

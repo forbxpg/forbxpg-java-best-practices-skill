@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, writeFileSync, readFileSync, cpSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, cpSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { installSource, latestTag, newer, stripCredentials } from '../hooks/lib/update.mjs';
@@ -63,4 +63,60 @@ test('R-SRC-2: a project install records the clone remote without credentials, a
   const receipt = JSON.parse(readFileSync(join(project, '.gigacode/forbxpg-java/install-receipt.json'), 'utf8'));
   assert.deepEqual(receipt.source, { remote: 'https://bitbucket.example/scm/team/fj.git' });
   assert.ok(!JSON.stringify(receipt).includes(clone), 'the clone path is not in the receipt');
+});
+
+// ---- 2.1: cache, lock and ls-remote check ----
+import { runCheck, readCache, cacheFile } from '../hooks/lib/update.mjs';
+
+/** A bare repository with the given release tags, usable as a remote by path. */
+function remoteWithTags(...tags) {
+  const work = tempProject({ 'README.md': 'x' });
+  git(work, 'init', '-q', '-b', 'main');
+  git(work, 'add', '.');
+  git(work, 'commit', '-q', '-m', 'init');
+  for (const t of tags) git(work, 'tag', t);
+  const bare = join(tempProject(), 'remote.git');
+  execFileSync('git', ['clone', '-q', '--bare', work, bare], { stdio: 'pipe' });
+  return bare;
+}
+
+test('2.1: a check against a remote with v0.3.0 and v0.4.0 caches latest 0.4.0', () => {
+  const remote = remoteWithTags('v0.3.0', 'v0.4.0', 'v0.5.0-rc1');
+  const cacheRoot = tempProject();
+  runCheck(remote, { cacheRoot });
+  const cache = readCache(remote, { cacheRoot });
+  assert.equal(cache.latest, '0.4.0');
+  assert.equal(cache.error, null);
+  assert.ok(Date.now() - cache.checkedAt < 60_000);
+});
+
+test('2.1: an unreachable remote is cached as an error, never thrown', () => {
+  const cacheRoot = tempProject();
+  assert.doesNotThrow(() => runCheck(join(tempProject(), 'missing.git'), { cacheRoot }));
+  const cache = readCache(join(tempProject(), 'missing.git'), { cacheRoot });
+  assert.equal(cache, null, 'a different remote has its own cache');
+  const remote = join(tempProject(), 'gone.git');
+  runCheck(remote, { cacheRoot });
+  assert.equal(readCache(remote, { cacheRoot }).latest, null);
+  assert.ok(readCache(remote, { cacheRoot }).error);
+});
+
+test('2.1: a fresh lock means another check is running — no second check', () => {
+  const remote = remoteWithTags('v0.4.0');
+  const cacheRoot = tempProject();
+  mkdirSync(dirname(cacheFile(remote, { cacheRoot })), { recursive: true });
+  writeFileSync(`${cacheFile(remote, { cacheRoot })}.lock`, String(process.pid));
+  assert.equal(runCheck(remote, { cacheRoot }).skipped, 'locked');
+  assert.equal(readCache(remote, { cacheRoot }), null);
+  assert.ok(existsSync(`${cacheFile(remote, { cacheRoot })}.lock`), "the other check's lock is left alone")
+});
+
+test('Review Focus 2: a hung git is cut off by the timeout and recorded as an error', () => {
+  const fake = join(tempProject(), 'slow-git.mjs');
+  writeFileSync(fake, 'setTimeout(() => {}, 30000);');
+  const cacheRoot = tempProject();
+  const start = Date.now();
+  runCheck('https://example.invalid/r.git', { cacheRoot, git: [process.execPath, fake], timeoutMs: 1000 });
+  assert.ok(Date.now() - start < 5000, `took ${Date.now() - start} ms`);
+  assert.match(readCache('https://example.invalid/r.git', { cacheRoot }).error, /timed out|ETIMEDOUT|SIGTERM/i);
 });
