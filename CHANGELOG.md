@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.1 — 2026-11-25
 
 - Update notice, after review: commands for the model are in backticks and runnable as
   written; a clone path with shell characters is never quoted into one; the receipt's
