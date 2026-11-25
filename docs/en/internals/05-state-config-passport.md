@@ -56,6 +56,9 @@ The passport affects the rules: J2 only on Boot 3+, J4 only on Boot 4+, the advi
   order is preserved even with several records within the same millisecond. Breaking a
   rule again updates its timestamp and moves it to the top.
 - The `pre-*` snapshot is deleted in `PostToolUse` right after it is used.
+- For the status line: `lastBuild` (`{result: ok|fail|unverified, at}`, written by Stop),
+  `compactions` (compactions in the session, never reset) and the shared
+  `update-check/status.json` (`{installed, latest, at}`, written at session start).
 
 The OS temporary folder is cleaned up by the system; the hooks do not need old sessions.
 

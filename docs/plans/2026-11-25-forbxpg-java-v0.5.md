@@ -147,7 +147,7 @@ Files: create commands/java/review.md, commands/java/verify.md, commands/java/up
 
 ## 5. Docs
 
-- [ ] 5.1 Docs and changelog — verify: links check passes and node --test passes
+- [x] 5.1 Docs and changelog — verify: links check passes and node --test passes
 
 Covers: — · Test: none: documentation
 
