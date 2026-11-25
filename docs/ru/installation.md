@@ -64,7 +64,12 @@ npx skills add forbxpg/forbxpg-java-best-practices-skill
 может только после вашего «да».
 
 - Нет сети, Bitbucket просит пароль или таймаут (5 с) → тишина, повтор через сутки.
-  Учётные данные не сохраняются: remote вида `https://user:password@` записывается без них.
+  Учётные данные не сохраняются: пароль в адресе remote (`https://user:password@`,
+  `ssh://git:password@`) записывается без него.
+- Квитанция лежит в git, поэтому хук верит в ней только простым значениям: версии `X.Y.Z`,
+  агенту `gigacode` или `claude` и remote в виде URL, `user@host:path` или абсолютного пути.
+  Остальное (опция вроде `--upload-pack=…`, `ext::`) → проверки нет.
+- Уведомление приходит в новом разговоре, не при resume и не после сжатия.
 - Проверить сейчас: `node install.mjs --check`.
 - Выключить: `"updateCheck": false` в `forbxpg-java.json` или `FORBXPG_JAVA_UPDATE_CHECK=0`.
 - Установки из маркетплейса Claude Code и из zip не проверяются.

@@ -64,8 +64,12 @@ version, the next session starts with a one-line notice for you and, for the mod
 update command: the model may run it only after your yes.
 
 - No network, a Bitbucket that asks for a password, or a timeout (5 s) → silence, retried a
-  day later. Credentials are never stored: a `https://user:password@` remote is recorded
-  without them.
+  day later. Credentials are never stored: a password in the remote URL
+  (`https://user:password@`, `ssh://git:password@`) is recorded without it.
+- The receipt is committed, so the hook trusts only plain values from it: an `X.Y.Z`
+  version, the agent `gigacode` or `claude`, and a URL, `user@host:path` or absolute path as
+  the remote. Anything else (an option such as `--upload-pack=…`, `ext::`) → no check.
+- The notice comes with a new conversation, not on resume or after compaction.
 - Check now: `node install.mjs --check`.
 - Off: `"updateCheck": false` in `forbxpg-java.json`, or `FORBXPG_JAVA_UPDATE_CHECK=0`.
 - Installs from the Claude Code marketplace or from a zip are not checked.

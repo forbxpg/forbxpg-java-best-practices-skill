@@ -58,7 +58,8 @@ export function handleSessionStart(input, ctx) {
   const router = ctx.harness === 'gigacode' ? '' : routerBody();
   const text = router ? `${line}\n\n${router}\n` : `${line}\n`;
   // FORBXPG_JAVA_UPDATE_CHECK=0 switches the check off for a whole environment (CI, air-gapped machines, the test suite).
-  const notice = ctx.config.updateCheck === false || process.env.FORBXPG_JAVA_UPDATE_CHECK === '0'
+  // Resume and compaction continue a conversation that was already told.
+  const notice = ctx.config.updateCheck === false || process.env.FORBXPG_JAVA_UPDATE_CHECK === '0' || ['resume', 'compact'].includes(input.source)
     ? null
     : updateNotice({ hooksLibDir: ctx.hooksLibDir ?? HERE, cacheRoot: ctx.updateCacheRoot, spawn: ctx.spawn });
   if (!notice) return { stdout: text };
